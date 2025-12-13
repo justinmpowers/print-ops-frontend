@@ -1,0 +1,14 @@
+<div class="login-container">
+    <div class="login-card">
+        <h1>J3D - Etsy Orders & Filament Tracker</h1>
+        <p class="subtitle">Manage your Etsy orders and filament inventory</p>
+
+        <button class="login-btn" (click)="loginWithEtsy()" [disabled]="loading">
+            {{ loading ? 'Redirecting to Etsy...' : 'Login with Etsy' }}
+        </button>
+
+        <p class="info-text">
+            This app requires permission to access your Etsy orders and shop information.
+        </p>
+    </div>
+</div>

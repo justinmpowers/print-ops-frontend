@@ -1,0 +1,53 @@
+# .dockerignore file for frontend
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Node modules (will be installed during build)
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# Build output (except dist)
+build
+.angular
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+docs
+README.md
+LICENSE
+
+# Testing
+karma.conf.js
+*.spec.ts
+.nyc_output
+coverage
+test
+
+# Development
+.env.local
+.env.*.local
+.browserslistrc
+
+# Source maps in production
+src/**/*.map
+
+# Temporary files
+*.tmp
+.cache

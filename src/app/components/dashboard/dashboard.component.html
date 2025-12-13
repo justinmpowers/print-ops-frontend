@@ -1,0 +1,135 @@
+<div class="dashboard">
+    <header class="dashboard-header">
+        <h1>J3D Dashboard</h1>
+        <div class="header-actions">
+            <span class="user-info" *ngIf="username">Welcome, {{ username }}</span>
+            <button class="logout-btn" (click)="logout()">Logout</button>
+        </div>
+    </header>
+
+    <nav class="dashboard-nav">
+        <button class="nav-btn" [class.active]="activeTab === 'orders'" (click)="activeTab = 'orders'">
+            Orders
+        </button>
+        <button class="nav-btn" [class.active]="activeTab === 'filaments'" (click)="activeTab = 'filaments'">
+            Filament Inventory
+        </button>
+    </nav>
+
+    <main class="dashboard-content">
+        <!-- Orders Section -->
+        <section *ngIf="activeTab === 'orders'" class="orders-section">
+            <div class="section-header">
+                <h2>Your Orders</h2>
+                <button class="sync-btn" (click)="syncOrders()" [disabled]="syncingOrders">
+                    {{ syncingOrders ? 'Syncing...' : 'Sync from Etsy' }}
+                </button>
+            </div>
+
+            <div *ngIf="orders.length > 0" class="orders-grid">
+                <div class="order-card" *ngFor="let order of orders">
+                    <div class="order-header">
+                        <h3>Order #{{ order.etsy_order_id }}</h3>
+                        <span class="status" [class]="'status-' + order.status.toLowerCase()">
+                            {{ order.status }}
+                        </span>
+                    </div>
+                    <p><strong>Buyer:</strong> {{ order.buyer_name }}</p>
+                    <p><strong>Email:</strong> {{ order.buyer_email }}</p>
+                    <p><strong>Total:</strong> {{ order.currency }} {{ order.total_amount }}</p>
+                    <p><strong>Created:</strong> {{ formatDate(order.created_at) }}</p>
+                    <p *ngIf="order.total_filament_used > 0">
+                        <strong>Filament Used:</strong> {{ order.total_filament_used }}g
+                    </p>
+                    <div class="order-items" *ngIf="order.items.length > 0">
+                        <strong>Items:</strong>
+                        <ul>
+                            <li *ngFor="let item of order.items">
+                                {{ item.title }} (Qty: {{ item.quantity }})
+                            </li>
+                        </ul>
+                    </div>
+                    <button class="manage-filament-btn" (click)="editOrderFilament(order)">
+                        Add Filament Usage
+                    </button>
+                </div>
+            </div>
+            <div *ngIf="orders.length === 0" class="empty-state">
+                <p>No orders yet. Click "Sync from Etsy" to load your orders.</p>
+            </div>
+        </section>
+
+        <!-- Filament Section -->
+        <section *ngIf="activeTab === 'filaments'" class="filaments-section">
+            <div class="section-header">
+                <h2>Filament Inventory</h2>
+                <button class="add-btn" (click)="showAddFilament = true">Add Filament</button>
+            </div>
+
+            <div *ngIf="filaments.length > 0" class="filaments-grid">
+                <div class="filament-card" *ngFor="let filament of filaments">
+                    <div class="filament-header">
+                        <h3>{{ filament.material }} - {{ filament.color }}</h3>
+                        <div class="filament-actions">
+                            <button class="edit-btn" (click)="editFilament(filament)">Edit</button>
+                            <button class="delete-btn" (click)="deleteFilament(filament.id)">Delete</button>
+                        </div>
+                    </div>
+                    <p><strong>Initial:</strong> {{ filament.initial_amount }}{{ filament.unit }}</p>
+                    <p><strong>Current:</strong> {{ filament.current_amount }}{{ filament.unit }}</p>
+                    <p><strong>Used:</strong> {{ filament.used_amount }}{{ filament.unit }}</p>
+                    <div class="usage-bar">
+                        <div class="used" [style.width]="(filament.used_amount / filament.initial_amount * 100) + '%'">
+                        </div>
+                    </div>
+                    <p *ngIf="filament.cost_per_gram">
+                        <strong>Cost/g:</strong> ${{ filament.cost_per_gram }}
+                    </p>
+                </div>
+            </div>
+            <div *ngIf="filaments.length === 0" class="empty-state">
+                <p>No filaments tracked yet. Click "Add Filament" to start tracking.</p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- Add/Edit Filament Modal -->
+<div class="modal" *ngIf="showAddFilament || editingFilament" (click)="closeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <h2>{{ editingFilament ? 'Edit Filament' : 'Add New Filament' }}</h2>
+
+        <form (ngSubmit)="saveFilament()">
+            <div class="form-group">
+                <label>Material</label>
+                <input type="text" [(ngModel)]="filamentForm.material" name="material"
+                    placeholder="e.g., PLA, ABS, PETG">
+            </div>
+
+            <div class="form-group">
+                <label>Color</label>
+                <input type="text" [(ngModel)]="filamentForm.color" name="color" placeholder="e.g., Red, Blue">
+            </div>
+
+            <div class="form-group">
+                <label>Initial Amount (g)</label>
+                <input type="number" [(ngModel)]="filamentForm.initial_amount" name="initial_amount" placeholder="1000">
+            </div>
+
+            <div class="form-group">
+                <label>Current Amount (g)</label>
+                <input type="number" [(ngModel)]="filamentForm.current_amount" name="current_amount" placeholder="1000">
+            </div>
+
+            <div class="form-group">
+                <label>Cost per Gram</label>
+                <input type="number" [(ngModel)]="filamentForm.cost_per_gram" name="cost_per_gram" placeholder="0.02">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="save-btn">Save</button>
+                <button type="button" class="cancel-btn" (click)="closeModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
