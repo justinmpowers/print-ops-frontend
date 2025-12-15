@@ -9,7 +9,8 @@
 node_modules
 npm-debug.log
 yarn-error.log
-package-lock.json
+# DO NOT ignore package-lock.json - we need it for npm ci
+# package-lock.json  <- REMOVED THIS LINE
 
 # Build output (except dist)
 build
