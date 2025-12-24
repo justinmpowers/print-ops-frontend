@@ -9,7 +9,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install dependencies with clean install (faster and reproducible)
-RUN npm ci --legacy-peer-deps
+RUN npm ci --legacy-peer-deps && \
+    # Verify installation
+    ls -la node_modules/@angular/common/ && \
+    test -d node_modules/@angular/common/http || (echo "@angular/common/http not found" && exit 1)
 
 # Copy application source
 COPY . .
