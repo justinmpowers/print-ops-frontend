@@ -275,8 +275,8 @@ public currentUser = this.currentUser$.asObservable();
 ```
 
 **Token Handling**:
-- Stores JWT in localStorage
-- Sends with all API requests
+- Stores JWT token in an HttpOnly, Secure, SameSite cookie (not accessible to JavaScript)
+- Browser sends cookie automatically with all API requests to the backend
 - Auto-refreshes on expiry
 - Handles logout
 
