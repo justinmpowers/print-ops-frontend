@@ -1,5 +1,4 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { LoginComponent } from './components/login/login.component';
 import { OAuthCallbackComponent } from './components/oauth-callback/oauth-callback.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
@@ -20,9 +19,3 @@ export const routes: Routes = [
   { path: 'printer/:printerId/notifications', component: NotificationSettingsComponent, canActivate: [AuthGuard] },
   { path: '**', redirectTo: '/dashboard' }
 ];
-
-@NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
-})
-export class AppRoutingModule { }
