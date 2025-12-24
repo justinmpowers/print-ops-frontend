@@ -28,7 +28,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY default.conf /etc/nginx/conf.d/default.conf
 
 # Copy built application from builder stage
-COPY --from=builder /app/dist/j3d-frontend /usr/share/nginx/html
+COPY --from=builder /app/dist/j3d-frontend/browser /usr/share/nginx/html
 
 # Create necessary directories and set permissions
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
