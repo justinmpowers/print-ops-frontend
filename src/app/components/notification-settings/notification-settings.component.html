@@ -1,0 +1,136 @@
+<div class="notification-settings-container">
+  <div class="header">
+    <button (click)="goBack()" class="btn-back">← Back</button>
+    <h2 *ngIf="printer">Notifications - {{ printer.name }}</h2>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+    <button (click)="clearMessages()" class="close-btn">×</button>
+  </div>
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button (click)="clearMessages()" class="close-btn">×</button>
+  </div>
+
+  <div class="settings-card">
+    <div *ngIf="loading" class="loading">Loading notification settings...</div>
+
+    <div *ngIf="!loading" class="settings-form">
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="button-row">
+          <button (click)="toggleAllNotifications(true)" class="btn btn-success">
+            Enable All Alerts
+          </button>
+          <button (click)="toggleAllNotifications(false)" class="btn btn-secondary">
+            Disable All Alerts
+          </button>
+        </div>
+      </div>
+
+      <!-- Print Events -->
+      <section class="settings-section">
+        <h3>Print Events</h3>
+        <div class="settings-group">
+          <label class="checkbox-group">
+            <input type="checkbox" [(ngModel)]="settings.notify_print_start" name="print_start">
+            <div class="checkbox-content">
+              <span class="label">Print Start Alert</span>
+              <span class="description">Notify when a print job starts</span>
+            </div>
+          </label>
+
+          <label class="checkbox-group">
+            <input type="checkbox" [(ngModel)]="settings.notify_print_complete" name="print_complete">
+            <div class="checkbox-content">
+              <span class="label">Print Complete Alert</span>
+              <span class="description">Notify when a print job finishes</span>
+            </div>
+          </label>
+
+          <label class="checkbox-group">
+            <input type="checkbox" [(ngModel)]="settings.notify_print_failed" name="print_failed">
+            <div class="checkbox-content">
+              <span class="label">Print Failed Alert</span>
+              <span class="description">Notify if a print job fails</span>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <!-- Maintenance & Materials -->
+      <section class="settings-section">
+        <h3>Maintenance & Materials</h3>
+        <div class="settings-group">
+          <label class="checkbox-group">
+            <input type="checkbox" [(ngModel)]="settings.notify_maintenance" name="maintenance">
+            <div class="checkbox-content">
+              <span class="label">Maintenance Alerts</span>
+              <span class="description">Notify for maintenance reminders</span>
+            </div>
+          </label>
+
+          <label class="checkbox-group">
+            <input type="checkbox" [(ngModel)]="settings.notify_material_change" name="material_change">
+            <div class="checkbox-content">
+              <span class="label">Material Change Alert</span>
+              <span class="description">Notify when material is running low</span>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <!-- Notification Methods -->
+      <section class="settings-section">
+        <h3>Notification Methods</h3>
+        <div class="settings-group">
+          <label class="checkbox-group">
+            <input type="checkbox" [(ngModel)]="settings.email_enabled" name="email_enabled">
+            <div class="checkbox-content">
+              <span class="label">Email Notifications</span>
+              <span class="description">Send alerts via email</span>
+            </div>
+          </label>
+        </div>
+      </section>
+
+      <!-- Webhook Integration -->
+      <section class="settings-section">
+        <h3>Webhook Integration</h3>
+        <p class="section-description">
+          Send notifications to a custom webhook endpoint. Useful for Discord, Slack, or custom integrations.
+        </p>
+        <div class="form-group">
+          <label>Webhook URL</label>
+          <input type="url" 
+                 [(ngModel)]="settings.webhook_url" 
+                 name="webhook_url"
+                 placeholder="https://webhook.site/your-unique-endpoint"
+                 class="webhook-input">
+          <span class="input-hint">Optional. POST requests will be sent to this URL on print events.</span>
+        </div>
+        <button *ngIf="settings.webhook_url" (click)="testWebhook()" class="btn btn-secondary" [disabled]="saving">
+          {{ saving ? 'Testing...' : 'Test Webhook' }}
+        </button>
+      </section>
+
+      <!-- Save Button -->
+      <div class="save-section">
+        <button (click)="saveSettings()" class="btn btn-primary" [disabled]="saving">
+          {{ saving ? 'Saving...' : '💾 Save Settings' }}
+        </button>
+      </div>
+
+      <!-- Info Box -->
+      <div class="info-box">
+        <h4>Webhook Event Format</h4>
+        <p>Your webhook will receive POST requests with this format:</p>
+        <pre><code>{{ '{' }}"event": "print_completed", "printer": "Bambu Lab X1", "job": "Custom Bracket", "timestamp": "2025-12-24T16:00:00"{{ '}' }}
+</code></pre>
+      </div>
+    </div>
+  </div>
+</div>

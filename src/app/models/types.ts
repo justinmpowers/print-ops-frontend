@@ -2,6 +2,9 @@ export interface User {
   id: number;
   etsy_user_id: string;
   username: string;
+  first_name?: string;
+  shop_id?: string;
+  shop_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -21,8 +24,42 @@ export interface Order {
   shipped_at: string | null;
   filament_assigned: boolean;
   total_filament_used: number;
+  internal_notes?: string | null;
+  photo_url?: string | null;
+  shipping_label_url?: string | null;
+  shipping_label_status?: string | null;
+  shipping_provider?: string | null;
+  tracking_number?: string | null;
+  last_customer_contact_at?: string | null;
+  production_status: string;
+  priority: number;
+  print_session_id: number | null;
+  estimated_print_time: number | null;
+  actual_print_time: number | null;
+  print_started_at: string | null;
+  print_completed_at: string | null;
+  print_failures_count: number;
+  print_notes: string | null;
   items: OrderItem[];
   synced_at: string;
+}
+
+export interface OrderNote {
+  id: number;
+  order_id: number;
+  user_id: number;
+  content: string;
+  created_at: string;
+}
+
+export interface CommunicationLog {
+  id: number;
+  order_id: number;
+  user_id: number;
+  direction: string;
+  channel: string;
+  message: string;
+  created_at: string;
 }
 
 export interface OrderItem {
@@ -44,6 +81,8 @@ export interface Filament {
   unit: string;
   cost_per_gram: number | null;
   used_amount: number;
+  low_stock_threshold: number;
+  is_low_stock: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -55,4 +94,46 @@ export interface FilamentUsage {
   amount_used: number;
   description: string | null;
   created_at: string;
+}
+
+export interface ProductProfile {
+  id: number;
+  user_id: number;
+  product_name: string;
+  description: string | null;
+  standard_filament_amount: number;
+  preferred_material: string | null;
+  preferred_color: string | null;
+  print_time_minutes: number | null;
+  notes: string | null;
+  category?: string | null;
+  nozzle_temp_c?: number | null;
+  bed_temp_c?: number | null;
+  print_speed_mms?: number | null;
+  support_settings?: string | null;
+  infill_percent?: number | null;
+  layer_height_mm?: number | null;
+  material_cost?: number | null;
+  labor_minutes?: number | null;
+  overhead_cost?: number | null;
+  target_margin_pct?: number | null;
+  suggested_price?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PrintSession {
+  id: number;
+  user_id: number;
+  name: string;
+  status: string;
+  total_estimated_time: number;
+  total_actual_time: number;
+  started_at: string | null;
+  completed_at: string | null;
+  notes: string | null;
+  order_count: number;
+  orders?: Order[];
+  created_at: string;
+  updated_at: string;
 }

@@ -1,61 +1,212 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
-import { OrderService } from '../../services/order.service';
-import { FilamentService } from '../../services/filament.service';
-import { Order, Filament } from '../../models/types';
+import { AuthService } from 'services/auth.service';
+import { OrderService } from 'services/order.service';
+import { FilamentService } from 'services/filament.service';
+import { Order, Filament, ProductProfile, OrderNote, CommunicationLog } from 'models/types';
+import { AnalyticsComponent } from 'components/analytics/analytics.component';
+import { ProductionComponent } from 'components/production/production.component';
+import { PrinterManagementComponent } from 'components/printer-management/printer-management.component';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
     selector: 'app-dashboard',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, FormsModule, AnalyticsComponent, ProductionComponent, PrinterManagementComponent],
     templateUrl: './dashboard.component.html',
     styleUrls: ['./dashboard.component.scss'],
 })
 export class DashboardComponent implements OnInit {
-    activeTab: 'orders' | 'filaments' = 'orders';
+    activeTab: 'orders' | 'filaments' | 'analytics' | 'products' | 'production' | 'printers' = 'orders';
     orders: Order[] = [];
+    selectedOrders: Set<number> = new Set();
+    orderFilters: {
+        status: string;
+        production_status: string;
+        product: string;
+        start_date: string;
+        end_date: string;
+        min_total?: number;
+        max_total?: number;
+    } = {
+        status: '',
+        production_status: '',
+        product: '',
+        start_date: '',
+        end_date: '',
+    };
+    noteDrafts: Record<number, string> = {};
+    notesCache: Record<number, OrderNote[]> = {};
+    commDrafts: Record<number, { message: string; direction: string; channel: string }> = {};
+    commCache: Record<number, CommunicationLog[]> = {};
+    labelDrafts: Record<number, { provider: string; tracking: string }> = {};
+    photoFiles: Record<number, File | null> = {};
     filaments: Filament[] = [];
+    productProfiles: ProductProfile[] = [];
     username: string = '';
+    shopName: string = '';
     syncingOrders = false;
+    autoSyncComplete = false;
     showAddFilament = false;
+    showAddProduct = false;
     editingFilament: Filament | null = null;
+    editingProduct: ProductProfile | null = null;
     filamentForm = {
         material: '',
         color: '',
         initial_amount: 0,
         current_amount: 0,
-        cost_per_gram: 0
+        cost_per_gram: 0,
+        low_stock_threshold: 100
+    };
+    
+    productForm = {
+        product_name: '',
+        description: '',
+        standard_filament_amount: 0,
+        preferred_material: '',
+        preferred_color: '',
+        print_time_minutes: 0,
+        notes: '',
+        category: '',
+        nozzle_temp_c: null as number | null,
+        bed_temp_c: null as number | null,
+        print_speed_mms: null as number | null,
+        support_settings: '',
+        infill_percent: null as number | null,
+        layer_height_mm: null as number | null,
+        material_cost: null as number | null,
+        labor_minutes: null as number | null,
+        overhead_cost: null as number | null,
+        target_margin_pct: null as number | null,
+        suggested_price: null as number | null
     };
 
     constructor(
         private authService: AuthService,
         private orderService: OrderService,
         private filamentService: FilamentService,
-        private router: Router
+        private router: Router,
+        private http: HttpClient
     ) { }
 
     ngOnInit(): void {
         this.authService.user$.subscribe(user => {
             if (user) {
-                this.username = user.username;
+                // Use first_name if available, otherwise fallback to username
+                this.username = user.first_name || user.username;
+                this.shopName = user.shop_name || '';
             }
         });
 
         this.loadOrders();
         this.loadFilaments();
+        this.loadProductProfiles();
+        
+        // Auto-sync orders on initial load
+        this.autoSyncOrders();
+    }
+
+    autoSyncOrders(): void {
+        // Only auto-sync if not already synced in this session
+        if (!this.autoSyncComplete && !this.syncingOrders) {
+            this.syncingOrders = true;
+            this.orderService.syncOrders().subscribe({
+                next: (response) => {
+                    this.syncingOrders = false;
+                    this.autoSyncComplete = true;
+                    this.loadOrders();
+                    console.log('Orders auto-synced successfully');
+                },
+                error: (error) => {
+                    this.syncingOrders = false;
+                    console.error('Auto-sync failed:', error);
+                    // Don't show alert for auto-sync failures, just log them
+                }
+            });
+        }
     }
 
     loadOrders(): void {
-        this.orderService.getOrders().subscribe(
+        const filters = { ...this.orderFilters };
+        this.orderService.getOrders(filters).subscribe(
             (response) => {
                 this.orders = response.orders;
+                // Reset selections for orders that no longer exist
+                this.selectedOrders.forEach(id => {
+                    if (!this.orders.find(o => o.id === id)) {
+                        this.selectedOrders.delete(id);
+                    }
+                });
+                this.orders.forEach(o => {
+                    if (!this.noteDrafts[o.id]) this.noteDrafts[o.id] = '';
+                    if (!this.commDrafts[o.id]) this.commDrafts[o.id] = { message: '', direction: 'outbound', channel: 'message' };
+                    if (!this.labelDrafts[o.id]) this.labelDrafts[o.id] = { provider: o.shipping_provider || 'manual', tracking: o.tracking_number || '' };
+                });
             },
             (error) => {
                 console.error('Error loading orders:', error);
             }
         );
+    }
+
+    applyFilters(): void {
+        this.loadOrders();
+    }
+
+    clearFilters(): void {
+        this.orderFilters = {
+            status: '',
+            production_status: '',
+            product: '',
+            start_date: '',
+            end_date: '',
+            min_total: undefined,
+            max_total: undefined
+        };
+        this.loadOrders();
+    }
+
+    // Filters UI state
+    showFilters: boolean = false;
+
+    ngAfterViewInit(): void {
+        // Default collapsed; restore previous state
+        const saved = localStorage.getItem('dashboard_filters_collapsed');
+        this.showFilters = saved ? saved !== 'true' : false;
+    }
+
+    toggleFilters(): void {
+        this.showFilters = !this.showFilters;
+        localStorage.setItem('dashboard_filters_collapsed', (!this.showFilters).toString());
+    }
+
+    activeFilterCount(): number {
+        const f = this.orderFilters;
+        let count = 0;
+        if (f.status) count++;
+        if (f.production_status) count++;
+        if (f.product) count++;
+        if (f.start_date) count++;
+        if (f.end_date) count++;
+        if (typeof f.min_total === 'number' && f.min_total !== undefined) count++;
+        if (typeof f.max_total === 'number' && f.max_total !== undefined) count++;
+        return count;
+    }
+
+    activeFilterChips(): string[] {
+        const chips: string[] = [];
+        const f = this.orderFilters;
+        if (f.status) chips.push(`Status: ${f.status}`);
+        if (f.production_status) chips.push(`Prod: ${f.production_status}`);
+        if (f.product) chips.push(`Product: ${f.product}`);
+        if (f.start_date) chips.push(`From: ${f.start_date}`);
+        if (f.end_date) chips.push(`To: ${f.end_date}`);
+        if (typeof f.min_total === 'number' && f.min_total !== undefined) chips.push(`Min: ${f.min_total}`);
+        if (typeof f.max_total === 'number' && f.max_total !== undefined) chips.push(`Max: ${f.max_total}`);
+        return chips;
     }
 
     loadFilaments(): void {
@@ -71,18 +222,164 @@ export class DashboardComponent implements OnInit {
 
     syncOrders(): void {
         this.syncingOrders = true;
-        this.orderService.syncOrders().subscribe(
-            (response) => {
+        this.orderService.syncOrders().subscribe({
+            next: (response) => {
                 this.syncingOrders = false;
                 this.loadOrders();
                 alert('Orders synced successfully!');
             },
-            (error) => {
+            error: (error) => {
                 this.syncingOrders = false;
                 console.error('Error syncing orders:', error);
                 alert('Failed to sync orders');
             }
-        );
+        });
+    }
+
+    toggleOrderSelection(orderId: number): void {
+        if (this.selectedOrders.has(orderId)) {
+            this.selectedOrders.delete(orderId);
+        } else {
+            this.selectedOrders.add(orderId);
+        }
+    }
+
+    selectAllOrders(): void {
+        this.orders.forEach(o => this.selectedOrders.add(o.id));
+    }
+
+    clearSelection(): void {
+        this.selectedOrders.clear();
+    }
+
+    bulkMarkShipped(): void {
+        if (this.selectedOrders.size === 0) {
+            alert('Select at least one order');
+            return;
+        }
+        this.orderService.bulkActions(Array.from(this.selectedOrders), 'mark_shipped').subscribe({
+            next: () => {
+                this.loadOrders();
+            },
+            error: (err) => {
+                console.error('Bulk mark shipped failed', err);
+                alert('Bulk mark shipped failed');
+            }
+        });
+    }
+
+    bulkAssignFilament(): void {
+        if (this.selectedOrders.size === 0) {
+            alert('Select at least one order');
+            return;
+        }
+        this.orderService.bulkActions(Array.from(this.selectedOrders), 'assign_filament').subscribe({
+            next: () => {
+                this.loadOrders();
+                this.loadFilaments();
+            },
+            error: (err) => {
+                console.error('Bulk assign filament failed', err);
+                alert('Bulk assign filament failed');
+            }
+        });
+    }
+
+    saveNote(order: Order): void {
+        const content = this.noteDrafts[order.id];
+        if (!content || !content.trim()) {
+            alert('Note cannot be empty');
+            return;
+        }
+        this.orderService.addNote(order.id, content).subscribe({
+            next: (note) => {
+                this.noteDrafts[order.id] = '';
+                if (!this.notesCache[order.id]) this.notesCache[order.id] = [];
+                this.notesCache[order.id].unshift(note);
+            },
+            error: (err) => {
+                console.error('Failed to add note', err);
+                alert('Failed to add note');
+            }
+        });
+    }
+
+    loadNotes(order: Order): void {
+        if (this.notesCache[order.id]) return; // already loaded
+        this.orderService.listNotes(order.id).subscribe({
+            next: (res) => {
+                this.notesCache[order.id] = res.notes;
+            },
+            error: (err) => console.error('Failed to load notes', err)
+        });
+    }
+
+    saveCommunication(order: Order): void {
+        const draft = this.commDrafts[order.id] || { message: '', direction: 'outbound', channel: 'message' };
+        if (!draft.message || !draft.message.trim()) {
+            alert('Message cannot be empty');
+            return;
+        }
+        this.orderService.addCommunication(order.id, draft).subscribe({
+            next: (log) => {
+                if (!this.commCache[order.id]) this.commCache[order.id] = [];
+                this.commCache[order.id].unshift(log);
+                this.commDrafts[order.id] = { message: '', direction: 'outbound', channel: 'message' };
+                this.loadOrders();
+            },
+            error: (err) => {
+                console.error('Failed to add communication', err);
+                alert('Failed to add communication');
+            }
+        });
+    }
+
+    loadCommunications(order: Order): void {
+        if (this.commCache[order.id]) return;
+        this.orderService.listCommunications(order.id).subscribe({
+            next: (res) => this.commCache[order.id] = res.logs,
+            error: (err) => console.error('Failed to load communications', err)
+        });
+    }
+
+    onPhotoSelected(event: any, order: Order): void {
+        const file = event.target.files?.[0];
+        this.photoFiles[order.id] = file || null;
+    }
+
+    uploadPhoto(order: Order): void {
+        const file = this.photoFiles[order.id];
+        if (!file) {
+            alert('Select a photo first');
+            return;
+        }
+        this.orderService.uploadPhoto(order.id, file).subscribe({
+            next: (res) => {
+                order.photo_url = res.photo_url;
+                this.photoFiles[order.id] = null;
+            },
+            error: (err) => {
+                console.error('Photo upload failed', err);
+                alert('Photo upload failed');
+            }
+        });
+    }
+
+    saveShippingLabel(order: Order): void {
+        const draft = this.labelDrafts[order.id] || { provider: 'manual', tracking: '' };
+        this.orderService.updateShippingLabel(order.id, {
+            provider: draft.provider,
+            tracking_number: draft.tracking,
+            status: 'CREATED'
+        }).subscribe({
+            next: (updated) => {
+                Object.assign(order, updated);
+            },
+            error: (err) => {
+                console.error('Shipping label save failed', err);
+                alert('Shipping label save failed');
+            }
+        });
     }
 
     editFilament(filament: Filament): void {
@@ -92,7 +389,8 @@ export class DashboardComponent implements OnInit {
             color: filament.color,
             initial_amount: filament.initial_amount,
             current_amount: filament.current_amount,
-            cost_per_gram: filament.cost_per_gram || 0
+            cost_per_gram: filament.cost_per_gram || 0,
+            low_stock_threshold: filament.low_stock_threshold || 100
         };
         this.showAddFilament = true;
     }
@@ -141,6 +439,133 @@ export class DashboardComponent implements OnInit {
         alert(`Managing filament for order ${order.etsy_order_id} - This feature will be implemented soon`);
     }
 
+    autoAssignFilament(order: Order): void {
+        if (confirm(`Auto-assign filament to order #${order.etsy_order_id}? This will match order items to product profiles and deduct filament from inventory.`)) {
+            this.orderService.autoAssignFilament(order.id).subscribe({
+                next: (response) => {
+                    alert(response.message);
+                    this.loadOrders();
+                    this.loadFilaments();
+                },
+                error: (error) => {
+                    console.error('Error auto-assigning filament:', error);
+                    alert(error.error?.message || 'Failed to auto-assign filament');
+                }
+            });
+        }
+    }
+
+    loadProductProfiles(): void {
+        this.http.get<{ profiles: ProductProfile[], total: number }>('http://localhost:5000/api/product-profiles', {
+            headers: this.authService.getAuthHeaders()
+        }).subscribe({
+            next: (response) => {
+                this.productProfiles = response.profiles;
+            },
+            error: (error) => {
+                console.error('Error loading product profiles:', error);
+            }
+        });
+    }
+
+    editProduct(product: ProductProfile): void {
+        this.editingProduct = product;
+        this.productForm = {
+            product_name: product.product_name,
+            description: product.description || '',
+            standard_filament_amount: product.standard_filament_amount,
+            preferred_material: product.preferred_material || '',
+            preferred_color: product.preferred_color || '',
+            print_time_minutes: product.print_time_minutes || 0,
+            notes: product.notes || '',
+            category: product.category || '',
+            nozzle_temp_c: product.nozzle_temp_c ?? null,
+            bed_temp_c: product.bed_temp_c ?? null,
+            print_speed_mms: product.print_speed_mms ?? null,
+            support_settings: product.support_settings || '',
+            infill_percent: product.infill_percent ?? null,
+            layer_height_mm: product.layer_height_mm ?? null,
+            material_cost: product.material_cost ?? null,
+            labor_minutes: product.labor_minutes ?? null,
+            overhead_cost: product.overhead_cost ?? null,
+            target_margin_pct: product.target_margin_pct ?? null,
+            suggested_price: product.suggested_price ?? null
+        };
+        this.showAddProduct = true;
+    }
+
+    deleteProduct(productId: number): void {
+        if (confirm('Are you sure you want to delete this product profile?')) {
+            this.http.delete(`http://localhost:5000/api/product-profiles/${productId}`, {
+                headers: this.authService.getAuthHeaders()
+            }).subscribe({
+                next: () => {
+                    this.loadProductProfiles();
+                },
+                error: (error) => {
+                    console.error('Error deleting product:', error);
+                    alert('Failed to delete product profile');
+                }
+            });
+        }
+    }
+
+    saveProduct(): void {
+        if (this.editingProduct) {
+            this.http.put(`http://localhost:5000/api/product-profiles/${this.editingProduct.id}`, this.productForm, {
+                headers: this.authService.getAuthHeaders()
+            }).subscribe({
+                next: () => {
+                    this.loadProductProfiles();
+                    this.closeProductModal();
+                },
+                error: (error) => {
+                    console.error('Error updating product:', error);
+                    alert('Failed to update product profile');
+                }
+            });
+        } else {
+            this.http.post('http://localhost:5000/api/product-profiles', this.productForm, {
+                headers: this.authService.getAuthHeaders()
+            }).subscribe({
+                next: () => {
+                    this.loadProductProfiles();
+                    this.closeProductModal();
+                },
+                error: (error) => {
+                    console.error('Error creating product:', error);
+                    alert('Failed to create product profile');
+                }
+            });
+        }
+    }
+
+    closeProductModal(): void {
+        this.showAddProduct = false;
+        this.editingProduct = null;
+        this.productForm = {
+            product_name: '',
+            description: '',
+            standard_filament_amount: 0,
+            preferred_material: '',
+            preferred_color: '',
+            print_time_minutes: 0,
+            notes: '',
+            category: '',
+            nozzle_temp_c: null,
+            bed_temp_c: null,
+            print_speed_mms: null,
+            support_settings: '',
+            infill_percent: null,
+            layer_height_mm: null,
+            material_cost: null,
+            labor_minutes: null,
+            overhead_cost: null,
+            target_margin_pct: null,
+            suggested_price: null
+        };
+    }
+
     closeModal(): void {
         this.showAddFilament = false;
         this.editingFilament = null;
@@ -149,7 +574,8 @@ export class DashboardComponent implements OnInit {
             color: '',
             initial_amount: 0,
             current_amount: 0,
-            cost_per_gram: 0
+            cost_per_gram: 0,
+            low_stock_threshold: 100
         };
     }
 
@@ -159,13 +585,16 @@ export class DashboardComponent implements OnInit {
     }
 
     logout(): void {
-        this.authService.logout().subscribe(
-            () => {
+        this.authService.logout().subscribe({
+            next: () => {
                 this.router.navigate(['/login']);
             },
-            (error) => {
+            error: (error) => {
                 console.error('Error logging out:', error);
+                // Clear token and navigate anyway
+                this.authService.clearToken();
+                this.router.navigate(['/login']);
             }
-        );
+        });
     }
 }

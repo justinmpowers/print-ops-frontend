@@ -70,7 +70,6 @@ export class OAuthCallbackComponent implements OnInit {
         // Retrieve code_verifier from sessionStorage
         const code_verifier = sessionStorage.getItem('oauth_code_verifier');
         if (!code_verifier) {
-          console.error('No code_verifier found in sessionStorage');
           this.message = 'Login failed. Redirecting...';
           setTimeout(() => {
             this.router.navigate(['/login']);
@@ -88,7 +87,6 @@ export class OAuthCallbackComponent implements OnInit {
             }, 1000);
           },
           (error) => {
-            console.error('OAuth callback error:', error);
             this.message = 'Login failed. Redirecting...';
             setTimeout(() => {
               this.router.navigate(['/login']);

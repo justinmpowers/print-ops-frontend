@@ -1,0 +1,267 @@
+<div class="production-container">
+  <div class="production-header">
+    <h2>🖨️ Production Queue</h2>
+    <div class="header-actions">
+      <button class="btn-primary" (click)="loadProductionQueue()" [disabled]="loading">
+        {{ loading ? 'Loading...' : '🔄 Refresh' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <!-- Filters and Actions -->
+  <div class="toolbar">
+    <div class="filters">
+      <select [(ngModel)]="filterStatus" class="filter-select">
+        <option value="ALL">All Statuses</option>
+        <option value="QUEUED">Queued</option>
+        <option value="PRINTING">Printing</option>
+        <option value="PRINTED">Printed</option>
+        <option value="FAILED">Failed</option>
+      </select>
+
+      <select [(ngModel)]="filterPriority" class="filter-select">
+        <option value="ALL">All Priorities</option>
+        <option value="1">Urgent</option>
+        <option value="2">High</option>
+        <option value="3">Medium</option>
+        <option value="4">Low</option>
+        <option value="5">Backlog</option>
+      </select>
+    </div>
+
+    <div class="batch-actions">
+      <span class="selection-info">
+        {{ selectedOrders.size }} selected
+        <span *ngIf="selectedOrders.size > 0"> ({{ getSelectedEstimatedTime() }})</span>
+      </span>
+      <button class="btn-secondary" (click)="selectAll()">Select All</button>
+      <button class="btn-secondary" (click)="clearSelection()" [disabled]="selectedOrders.size === 0">
+        Clear
+      </button>
+      <button class="btn-primary" (click)="openSessionModal()" [disabled]="selectedOrders.size === 0">
+        Create Print Session
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="stats-bar">
+    <div class="stat">
+      <span class="stat-label">Total Orders:</span>
+      <span class="stat-value">{{ filteredOrders.length }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Total Est. Time:</span>
+      <span class="stat-value">{{ getTotalEstimatedTime() }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Queued:</span>
+      <span class="stat-value">{{ getStatusCount('QUEUED') }}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Printing:</span>
+      <span class="stat-value">{{ getStatusCount('PRINTING') }}</span>
+    </div>
+  </div>
+
+  <!-- Production Queue Table -->
+  <div class="queue-table">
+    <table>
+      <thead>
+        <tr>
+          <th width="40"></th>
+          <th width="80">Priority</th>
+          <th width="120">Status</th>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th width="120">Est. Time</th>
+          <th width="120">Actual Time</th>
+          <th width="100">Failures</th>
+          <th width="200">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of filteredOrders" [class.selected]="selectedOrders.has(order.id)">
+          <td>
+            <input 
+              type="checkbox" 
+              [checked]="selectedOrders.has(order.id)"
+              (change)="toggleOrderSelection(order.id)"
+            />
+          </td>
+          <td>
+            <div class="priority-cell">
+              <span class="priority-badge" [class]="getPriorityClass(order.priority)">
+                {{ getPriorityLabel(order.priority) }}
+              </span>
+              <div class="priority-controls">
+                <button 
+                  class="btn-icon" 
+                  (click)="changePriority(order, -1)"
+                  [disabled]="order.priority === 1"
+                  title="Increase Priority"
+                >⬆️</button>
+                <button 
+                  class="btn-icon" 
+                  (click)="changePriority(order, 1)"
+                  [disabled]="order.priority === 5"
+                  title="Decrease Priority"
+                >⬇️</button>
+              </div>
+            </div>
+          </td>
+          <td>
+            <select 
+              class="status-select" 
+              [class]="getStatusClass(order.production_status)"
+              [value]="order.production_status"
+              (change)="updateStatus(order, $any($event.target).value)"
+            >
+              <option value="QUEUED">Queued</option>
+              <option value="PRINTING">Printing</option>
+              <option value="PRINTED">Printed</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </td>
+          <td>
+            <div class="order-info">
+              <strong>#{{ order.etsy_order_id.substring(0, 10) }}</strong>
+              <small>{{ order.created_at | date:'short' }}</small>
+            </div>
+          </td>
+          <td>{{ order.buyer_name }}</td>
+          <td>
+            <div class="items-list">
+              <div *ngFor="let item of order.items" class="item-row">
+                {{ item.quantity }}x {{ item.title }}
+              </div>
+            </div>
+          </td>
+          <td>
+            <div *ngIf="editingOrderId === order.id; else showTime">
+              <input 
+                type="number" 
+                [(ngModel)]="editedPrintTime" 
+                class="time-input"
+                placeholder="minutes"
+              />
+            </div>
+            <ng-template #showTime>
+              {{ formatTime(order.estimated_print_time) }}
+            </ng-template>
+          </td>
+          <td>
+            <span [class.time-over]="order.actual_print_time && order.estimated_print_time && order.actual_print_time > order.estimated_print_time">
+              {{ formatTime(order.actual_print_time) }}
+            </span>
+          </td>
+          <td class="text-center">
+            <span *ngIf="order.print_failures_count > 0" class="failure-badge">
+              ❌ {{ order.print_failures_count }}
+            </span>
+            <span *ngIf="order.print_failures_count === 0">-</span>
+          </td>
+          <td>
+            <div class="action-buttons" *ngIf="editingOrderId !== order.id; else editingButtons">
+              <button class="btn-sm btn-primary" (click)="startEditing(order)" title="Edit">
+                ✏️
+              </button>
+              <button 
+                *ngIf="order.production_status === 'QUEUED'" 
+                class="btn-sm btn-success" 
+                (click)="updateStatus(order, 'PRINTING')"
+                title="Start Printing"
+              >
+                ▶️
+              </button>
+              <button 
+                *ngIf="order.production_status === 'PRINTING'" 
+                class="btn-sm btn-success" 
+                (click)="updateStatus(order, 'PRINTED')"
+                title="Mark Printed"
+              >
+                ✅
+              </button>
+            </div>
+            <ng-template #editingButtons>
+              <div class="action-buttons">
+                <button class="btn-sm btn-success" (click)="saveEdits(order)">💾</button>
+                <button class="btn-sm btn-secondary" (click)="cancelEditing()">❌</button>
+              </div>
+            </ng-template>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="filteredOrders.length === 0 && !loading" class="empty-state">
+      <p>No orders in production queue</p>
+    </div>
+  </div>
+
+  <!-- Print Sessions Section -->
+  <div class="sessions-section" *ngIf="sessions.length > 0">
+    <h3>📋 Recent Print Sessions</h3>
+    <div class="sessions-grid">
+      <div *ngFor="let session of sessions" class="session-card">
+        <div class="session-header">
+          <strong>{{ session.name }}</strong>
+          <span class="session-status" [class]="'status-' + session.status.toLowerCase()">
+            {{ session.status }}
+          </span>
+        </div>
+        <div class="session-details">
+          <p><strong>Orders:</strong> {{ session.order_count }}</p>
+          <p><strong>Est. Time:</strong> {{ formatTime(session.total_estimated_time) }}</p>
+          <p *ngIf="session.total_actual_time > 0">
+            <strong>Actual:</strong> {{ formatTime(session.total_actual_time) }}
+          </p>
+          <p *ngIf="session.notes"><em>{{ session.notes }}</em></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Session Modal -->
+<div class="modal-overlay" *ngIf="showSessionModal" (click)="closeSessionModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Create Print Session</h3>
+      <button class="close-btn" (click)="closeSessionModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Session Name</label>
+        <input 
+          type="text" 
+          [(ngModel)]="newSessionName" 
+          placeholder="e.g., Monday Batch, Blue Prints"
+          class="form-input"
+        />
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea 
+          [(ngModel)]="newSessionNotes" 
+          placeholder="Any notes about this print session..."
+          rows="3"
+          class="form-input"
+        ></textarea>
+      </div>
+      <div class="session-summary">
+        <p><strong>Orders selected:</strong> {{ selectedOrders.size }}</p>
+        <p><strong>Total estimated time:</strong> {{ getSelectedEstimatedTime() }}</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeSessionModal()">Cancel</button>
+      <button class="btn-primary" (click)="createSession()">Create Session</button>
+    </div>
+  </div>
+</div>

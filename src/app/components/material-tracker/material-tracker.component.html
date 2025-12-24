@@ -1,0 +1,197 @@
+<div class="material-tracker-container">
+  <div class="header">
+    <button (click)="goBack()" class="btn-back">← Back</button>
+    <h2 *ngIf="printer">Materials - {{ printer.name }}</h2>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+    <button (click)="clearMessages()" class="close-btn">×</button>
+  </div>
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button (click)="clearMessages()" class="close-btn">×</button>
+  </div>
+
+  <div class="layout">
+    <!-- Materials Grid -->
+    <div class="materials-section">
+      <div class="section-header">
+        <h3>Loaded Materials (AMS)</h3>
+        <button (click)="startAdding()" class="btn btn-primary">+ Add Material</button>
+      </div>
+
+      <div *ngIf="loading && materials.length === 0" class="loading">Loading materials...</div>
+
+      <div *ngIf="!loading && materials.length === 0" class="empty-state">
+        <p>No materials loaded yet.</p>
+        <button (click)="startAdding()" class="btn btn-primary">Load First Material</button>
+      </div>
+
+      <div *ngIf="materials.length > 0" class="materials-grid">
+        <div *ngFor="let material of materials"
+             [class.selected]="selectedMaterial?.id === material.id"
+             (click)="selectMaterial(material)"
+             class="material-card">
+          <div class="slot-badge">Slot {{ material.slot }}</div>
+          <div class="material-color" [style.background-color]="material.color || '#ccc'"></div>
+          <div class="material-info">
+            <h4>{{ material.material_type }}</h4>
+            <p class="color-label">{{ material.color }}</p>
+            <div class="progress-bar">
+              <div class="progress-fill" 
+                   [style.width]="(material.remaining_pct || 0) + '%'"
+                   [class]="'fill-' + getProgressColor(material.remaining_pct)">
+              </div>
+            </div>
+            <p class="remaining">{{ material.remaining_pct }}%</p>
+            <p class="status-label" [class]="'status-' + getProgressColor(material.remaining_pct)">
+              {{ getProgressLabel(material.remaining_pct) }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Material Details / Form -->
+    <div class="material-details-section">
+      <!-- Add Form -->
+      <div *ngIf="isAdding" class="form-section">
+        <h3>Add New Material</h3>
+
+        <form (ngSubmit)="saveMaterial()">
+          <div class="form-group">
+            <label>AMS Slot *</label>
+            <input type="number" [(ngModel)]="newMaterial.slot" name="slot" min="0" max="7">
+          </div>
+
+          <div class="form-group">
+            <label>Material Type *</label>
+            <select [(ngModel)]="newMaterial.material_type" name="material_type">
+              <option *ngFor="let type of materialTypes" [value]="type">{{ type }}</option>
+              <option value="">Custom</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Color</label>
+            <input type="text" [(ngModel)]="newMaterial.color" name="color" placeholder="e.g., White">
+          </div>
+
+          <div class="form-group">
+            <label>Weight (grams) *</label>
+            <input type="number" [(ngModel)]="newMaterial.weight_grams" name="weight_grams" min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Initial Fill %</label>
+            <input type="number" [(ngModel)]="newMaterial.remaining_pct" name="remaining_pct" min="0" max="100">
+          </div>
+
+          <div class="form-group">
+            <label>Vendor</label>
+            <input type="text" [(ngModel)]="newMaterial.vendor" name="vendor" placeholder="e.g., Bambu Lab">
+          </div>
+
+          <div class="form-group">
+            <label>Cost per kg ($)</label>
+            <input type="number" [(ngModel)]="newMaterial.cost_per_kg" name="cost_per_kg" min="0" step="0.01">
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              {{ loading ? 'Adding...' : 'Add Material' }}
+            </button>
+            <button type="button" (click)="cancel()" class="btn btn-secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Material Details View -->
+      <div *ngIf="selectedMaterial && !isAdding" class="details-section">
+        <div class="detail-header">
+          <h3>{{ selectedMaterial.material_type }} - {{ selectedMaterial.color }}</h3>
+          <div class="actions">
+            <button (click)="deleteMaterial(selectedMaterial!)" class="btn btn-danger">Remove</button>
+          </div>
+        </div>
+
+        <div class="material-color-large" [style.background-color]="selectedMaterial.color || '#ccc'"></div>
+
+        <div class="details-grid">
+          <div class="detail-row">
+            <label>Slot:</label>
+            <span>{{ selectedMaterial.slot }}</span>
+          </div>
+          <div class="detail-row">
+            <label>Material Type:</label>
+            <span>{{ selectedMaterial.material_type }}</span>
+          </div>
+          <div class="detail-row">
+            <label>Vendor:</label>
+            <span>{{ selectedMaterial.vendor || 'N/A' }}</span>
+          </div>
+          <div class="detail-row">
+            <label>Initial Weight:</label>
+            <span>{{ selectedMaterial.weight_grams }}g</span>
+          </div>
+          <div class="detail-row">
+            <label>Cost per kg:</label>
+            <span>${{ selectedMaterial.cost_per_kg || 0 }}</span>
+          </div>
+        </div>
+
+        <div class="usage-section">
+          <h4>Current Status</h4>
+          <div class="progress-bar-large">
+            <div class="progress-fill-large" 
+                 [style.width]="(selectedMaterial.remaining_pct || 0) + '%'"
+                 [class]="'fill-' + getProgressColor(selectedMaterial.remaining_pct)">
+            </div>
+          </div>
+          <div class="usage-info">
+            <div class="info-item">
+              <label>Remaining:</label>
+              <span>{{ selectedMaterial.remaining_pct }}%</span>
+            </div>
+            <div class="info-item">
+              <label>Weight Left:</label>
+              <span>{{ selectedMaterial.remaining_grams || 0 }}g</span>
+            </div>
+            <div class="info-item">
+              <label>Status:</label>
+              <span class="status-badge" [class]="'status-' + getProgressColor(selectedMaterial.remaining_pct)">
+                {{ getProgressLabel(selectedMaterial.remaining_pct) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="update-section">
+          <h4>Update Status</h4>
+          <div class="form-group">
+            <label>Remaining %</label>
+            <div class="input-row">
+              <input type="range" [(ngModel)]="newMaterial.remaining_pct" name="remaining_pct" 
+                     min="0" max="100" class="slider">
+              <span class="value">{{ newMaterial.remaining_pct }}%</span>
+            </div>
+          </div>
+          <button (click)="updateMaterial()" class="btn btn-primary" [disabled]="loading">
+            {{ loading ? 'Updating...' : 'Update' }}
+          </button>
+        </div>
+
+        <div class="last-synced" *ngIf="selectedMaterial.last_synced">
+          Last synced: {{ selectedMaterial.last_synced | date: 'short' }}
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!selectedMaterial && !isAdding" class="empty-state-details">
+        <p>Select a material or add a new one</p>
+      </div>
+    </div>
+  </div>
+</div>

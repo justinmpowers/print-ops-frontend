@@ -22,20 +22,15 @@ export class LoginComponent {
         this.loading = true;
         this.authService.getLoginUrl().subscribe(
             (response) => {
-                console.log('Login URL response:', response);
                 if (response.auth_url && response.code_verifier) {
                     // Store code_verifier in sessionStorage for later use
                     sessionStorage.setItem('oauth_code_verifier', response.code_verifier);
-                    console.log('Stored code_verifier in sessionStorage');
-                    console.log('Redirecting to:', response.auth_url);
                     window.location.href = response.auth_url;
                 } else {
-                    console.error('No auth_url or code_verifier in response');
                     this.loading = false;
                 }
             },
             (error) => {
-                console.error('Error getting login URL:', error);
                 this.loading = false;
             }
         );

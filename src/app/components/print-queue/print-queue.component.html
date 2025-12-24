@@ -1,0 +1,183 @@
+<div class="print-queue-container">
+  <div class="header">
+    <button (click)="goBack()" class="btn-back">← Back</button>
+    <h2 *ngIf="printer">Print Queue - {{ printer.name }}</h2>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+    <button (click)="clearMessages()" class="close-btn">×</button>
+  </div>
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button (click)="clearMessages()" class="close-btn">×</button>
+  </div>
+
+  <div class="layout">
+    <!-- Queue Section -->
+    <div class="queue-section">
+      <div class="section-header">
+        <h3>Current Queue</h3>
+        <select [(ngModel)]="filterStatus" (change)="loadPrints(printer!.id)" class="filter-select">
+          <option *ngFor="let status of statuses" [value]="status">
+            {{ status | titlecase }}
+          </option>
+        </select>
+      </div>
+
+      <div *ngIf="loading && prints.length === 0" class="loading">Loading queue...</div>
+
+      <div *ngIf="!loading && prints.length === 0" class="empty-state">
+        <p>No print jobs yet.</p>
+      </div>
+
+      <div *ngIf="prints.length > 0" class="queue-list">
+        <div *ngFor="let print of prints"
+             [class.selected]="selectedPrint?.id === print.id"
+             (click)="selectPrint(print)"
+             class="queue-item"
+             [class]="'status-' + getStatusColor(print.status)">
+          <div class="queue-item-header">
+            <h4>{{ print.job_name }}</h4>
+            <span class="status-badge" [class]="'badge-' + getStatusColor(print.status)">
+              {{ print.status | titlecase }}
+            </span>
+          </div>
+
+          <div class="queue-item-info">
+            <div class="info-row">
+              <span class="label">Duration:</span>
+              <span>{{ print.estimated_duration_minutes }}min</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Priority:</span>
+              <span class="priority-badge">{{ print.priority }}</span>
+            </div>
+            <div *ngIf="print.scheduled_start" class="info-row">
+              <span class="label">Scheduled:</span>
+              <span>{{ print.scheduled_start | date: 'short' }}</span>
+            </div>
+            <div *ngIf="print.started_at" class="info-row">
+              <span class="label">Started:</span>
+              <span>{{ print.started_at | date: 'short' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Details Section -->
+    <div class="details-section">
+      <div *ngIf="selectedPrint" class="print-details">
+        <div class="detail-header">
+          <h3>{{ selectedPrint.job_name }}</h3>
+          <span class="status-badge-large" [class]="'badge-' + getStatusColor(selectedPrint.status)">
+            {{ selectedPrint.status | uppercase }}
+          </span>
+        </div>
+
+        <div class="details-grid">
+          <div class="detail-row">
+            <label>File:</label>
+            <span>{{ selectedPrint.file_name || 'N/A' }}</span>
+          </div>
+          <div class="detail-row">
+            <label>Status:</label>
+            <span>{{ selectedPrint.status | titlecase }}</span>
+          </div>
+          <div class="detail-row">
+            <label>Priority:</label>
+            <span>{{ selectedPrint.priority }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.material_type">
+            <label>Material:</label>
+            <span>{{ selectedPrint.material_type }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.nozzle_temp">
+            <label>Nozzle Temp:</label>
+            <span>{{ selectedPrint.nozzle_temp }}°C</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.bed_temp">
+            <label>Bed Temp:</label>
+            <span>{{ selectedPrint.bed_temp }}°C</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.estimated_duration_minutes">
+            <label>Est. Duration:</label>
+            <span>{{ selectedPrint.estimated_duration_minutes }} minutes</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.scheduled_start">
+            <label>Scheduled Start:</label>
+            <span>{{ selectedPrint.scheduled_start | date: 'short' }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.started_at">
+            <label>Started At:</label>
+            <span>{{ selectedPrint.started_at | date: 'short' }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.completed_at">
+            <label>Completed At:</label>
+            <span>{{ selectedPrint.completed_at | date: 'short' }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.failed_reason">
+            <label>Failure Reason:</label>
+            <span class="error-text">{{ selectedPrint.failed_reason }}</span>
+          </div>
+          <div class="detail-row" *ngIf="selectedPrint.notes">
+            <label>Notes:</label>
+            <span>{{ selectedPrint.notes }}</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-section">
+          <h4>Actions</h4>
+          <div class="button-group">
+            <button *ngIf="selectedPrint.status === 'queued' || selectedPrint.status === 'scheduled'"
+                    (click)="startPrint(selectedPrint)"
+                    class="btn btn-primary"
+                    [disabled]="loading">
+              {{ loading ? 'Starting...' : '▶ Start Print' }}
+            </button>
+            <button *ngIf="selectedPrint.status === 'started'"
+                    (click)="completePrint(selectedPrint)"
+                    class="btn btn-success"
+                    [disabled]="loading">
+              {{ loading ? 'Completing...' : '✓ Mark Complete' }}
+            </button>
+            <button *ngIf="selectedPrint.status === 'started' || selectedPrint.status === 'queued' || selectedPrint.status === 'scheduled'"
+                    (click)="failPrint(selectedPrint)"
+                    class="btn btn-warning"
+                    [disabled]="loading">
+              ✗ Mark Failed
+            </button>
+            <button *ngIf="selectedPrint.status !== 'started'"
+                    (click)="deletePrint(selectedPrint)"
+                    class="btn btn-danger"
+                    [disabled]="loading">
+              🗑 Delete
+            </button>
+          </div>
+        </div>
+
+        <div class="created-info">
+          Created: {{ selectedPrint.created_at | date: 'short' }}
+        </div>
+      </div>
+
+      <div *ngIf="!selectedPrint" class="empty-state-details">
+        <p>Select a print job to view details</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Queue Summary -->
+  <div *ngIf="queuePrints.length > 0" class="queue-summary">
+    <h3>Next in Queue</h3>
+    <div class="summary-grid">
+      <div *ngFor="let print of queuePrints | slice:0:3" class="summary-item">
+        <h5>{{ print.job_name }}</h5>
+        <p>{{ print.estimated_duration_minutes }}min • Priority: {{ print.priority }}</p>
+      </div>
+    </div>
+  </div>
+</div>

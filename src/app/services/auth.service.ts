@@ -3,12 +3,17 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { User } from '../models/types';
+import { environment } from 'environments/environment';
 
+/**
+ * Service for managing user authentication with Etsy OAuth.
+ * Handles login, token management, and user information retrieval.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
   private tokenSubject = new BehaviorSubject<string | null>(this.getToken());
   private userSubject = new BehaviorSubject<User | null>(null);
 
