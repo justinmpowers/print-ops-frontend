@@ -3,12 +3,17 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Filament, FilamentUsage } from '../models/types';
 import { AuthService } from './auth.service';
+import { environment } from '../../../environments/environment';
 
+/**
+ * Service for managing filament inventory.
+ * Handles material tracking, usage calculations, and stock management.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class FilamentService {
-  private apiUrl = 'http://localhost:5000/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(
     private http: HttpClient,

@@ -1,0 +1,199 @@
+<div class="analytics-container">
+  <h1 class="analytics-title">Business Analytics</h1>
+
+  <div *ngIf="loading" class="loading">
+    <p>Loading analytics...</p>
+  </div>
+
+  <div *ngIf="error" class="error">
+    <p>{{ error }}</p>
+    <button (click)="loadAnalytics()" class="retry-btn">Retry</button>
+  </div>
+
+  <div *ngIf="!loading && !error && summary" class="analytics-content">
+    
+    <!-- Summary Cards -->
+    <section class="summary-section">
+      <h2>Overview</h2>
+      <div class="summary-grid">
+        <div class="summary-card revenue">
+          <div class="card-icon">💰</div>
+          <div class="card-content">
+            <h3>Total Revenue</h3>
+            <p class="card-value">{{ formatCurrency(summary.total_revenue) }}</p>
+            <span class="card-subtitle">{{ summary.total_orders }} orders</span>
+          </div>
+        </div>
+
+        <div class="summary-card profit">
+          <div class="card-icon">📈</div>
+          <div class="card-content">
+            <h3>Total Profit</h3>
+            <p class="card-value">{{ formatCurrency(summary.total_profit) }}</p>
+            <span class="card-subtitle">{{ summary.profit_margin.toFixed(1) }}% margin</span>
+          </div>
+        </div>
+
+        <div class="summary-card cost">
+          <div class="card-icon">🧵</div>
+          <div class="card-content">
+            <h3>Material Cost</h3>
+            <p class="card-value">{{ formatCurrency(summary.total_filament_cost) }}</p>
+            <span class="card-subtitle">Filament used</span>
+          </div>
+        </div>
+
+        <div class="summary-card avg-order">
+          <div class="card-icon">🛒</div>
+          <div class="card-content">
+            <h3>Avg Order Value</h3>
+            <p class="card-value">{{ formatCurrency(summary.avg_order_value) }}</p>
+            <span class="card-subtitle">Per transaction</span>
+          </div>
+        </div>
+
+        <div class="summary-card recent">
+          <div class="card-icon">📅</div>
+          <div class="card-content">
+            <h3>Last 30 Days</h3>
+            <p class="card-value">{{ formatCurrency(summary.recent_revenue) }}</p>
+            <span class="card-subtitle">{{ summary.recent_orders_count }} orders</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Revenue Trends -->
+    <section class="trends-section" *ngIf="revenueTrends">
+      <div class="section-header">
+        <h2>Revenue Trends</h2>
+        <div class="period-selector">
+          <label>View by:</label>
+          <select [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="chart-container" *ngIf="revenueTrends.trends.length > 0">
+        <div class="chart-stats">
+          <div class="stat">
+            <span class="stat-label">Total Periods:</span>
+            <span class="stat-value">{{ revenueTrends.trends.length }}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Max Revenue:</span>
+            <span class="stat-value">{{ formatCurrency(getChartMaxValue()) }}</span>
+          </div>
+        </div>
+        
+        <div class="bar-chart">
+          <div class="bar-group" *ngFor="let trend of revenueTrends.trends">
+            <div class="bars">
+              <div 
+                class="bar revenue-bar" 
+                [style.height.%]="getBarHeight(trend.revenue)"
+                [title]="'Revenue: ' + formatCurrency(trend.revenue)">
+                <span class="bar-value" *ngIf="getBarHeight(trend.revenue) > 10">{{ formatCurrency(trend.revenue) }}</span>
+              </div>
+              <div 
+                class="bar profit-bar" 
+                [style.height.%]="getBarHeight(trend.profit)"
+                [title]="'Profit: ' + formatCurrency(trend.profit)">
+                <span class="bar-value" *ngIf="getBarHeight(trend.profit) > 10">{{ formatCurrency(trend.profit) }}</span>
+              </div>
+            </div>
+            <div class="bar-label">{{ formatDate(trend.period) }}</div>
+            <div class="bar-orders">{{ trend.orders }} orders</div>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item">
+            <span class="legend-color revenue"></span>
+            <span>Revenue</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color profit"></span>
+            <span>Profit</span>
+          </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="trends-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Orders</th>
+                <th>Revenue</th>
+                <th>Material Cost</th>
+                <th>Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let trend of revenueTrends.trends">
+                <td>{{ formatDate(trend.period) }}</td>
+                <td>{{ trend.orders }}</td>
+                <td class="revenue">{{ formatCurrency(trend.revenue) }}</td>
+                <td>{{ formatCurrency(trend.filament_cost) }}</td>
+                <td class="profit">{{ formatCurrency(trend.profit) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div *ngIf="revenueTrends.trends.length === 0" class="empty-chart">
+        <p>No data available for the selected period</p>
+      </div>
+    </section>
+
+    <!-- Order Status Distribution -->
+    <section class="status-section" *ngIf="getStatusKeys().length > 0">
+      <h2>Orders by Status</h2>
+      <div class="status-grid">
+        <div class="status-card" *ngFor="let status of getStatusKeys()">
+          <div class="status-indicator" [style.background-color]="getStatusColor(status)"></div>
+          <div class="status-info">
+            <h3>{{ status }}</h3>
+            <p class="status-count">{{ summary.orders_by_status[status] }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Product Performance -->
+    <section class="products-section" *ngIf="productPerformance && productPerformance.products.length > 0">
+      <h2>Top Products</h2>
+      <div class="products-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th>Quantity Sold</th>
+              <th>Revenue</th>
+              <th>Orders</th>
+              <th>Avg Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let product of getTopProducts(10)">
+              <td class="product-name">{{ product.product_name }}</td>
+              <td>{{ product.total_quantity }}</td>
+              <td class="revenue">{{ formatCurrency(product.total_revenue) }}</td>
+              <td>{{ product.order_count }}</td>
+              <td>{{ formatCurrency(product.avg_price) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div *ngIf="productPerformance && productPerformance.products.length === 0" class="empty-state">
+      <p>No product data available yet. Sync your orders to see product performance.</p>
+    </div>
+
+  </div>
+</div>

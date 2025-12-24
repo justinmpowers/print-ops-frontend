@@ -1,0 +1,171 @@
+<div class="printer-management-container">
+  <h2>Printer Management</h2>
+
+  <!-- Messages -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+    <button (click)="clearMessages()" class="close-btn">×</button>
+  </div>
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+    <button (click)="clearMessages()" class="close-btn">×</button>
+  </div>
+
+  <div class="management-layout">
+    <!-- Printers List -->
+    <div class="printers-list-section">
+      <div class="section-header">
+        <h3>Your Printers</h3>
+        <button (click)="startAdding()" class="btn btn-primary">+ Add Printer</button>
+      </div>
+
+      <div *ngIf="loading && printers.length === 0" class="loading">Loading printers...</div>
+
+      <div *ngIf="!loading && printers.length === 0" class="empty-state">
+        <p>No printers configured yet.</p>
+        <button (click)="startAdding()" class="btn btn-primary">Add Your First Printer</button>
+      </div>
+
+      <ul *ngIf="printers.length > 0" class="printers-list">
+        <li *ngFor="let printer of printers" 
+            [class.selected]="selectedPrinter?.id === printer.id"
+            (click)="selectPrinter(printer)"
+            class="printer-item">
+          <div class="printer-info">
+            <h4>{{ printer.name }}</h4>
+            <p class="printer-type">{{ printer.type | uppercase }}</p>
+            <p class="printer-status">
+              <span class="status-badge" [class]="'status-' + (printer.status || 'unknown')">
+                {{ printer.status || 'unknown' }}
+              </span>
+            </p>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Printer Details / Form -->
+    <div class="printer-details-section">
+      <!-- Adding/Editing Form -->
+      <div *ngIf="isAdding || isEditing" class="form-section">
+        <h3>{{ isAdding ? 'Add New Printer' : 'Edit Printer' }}</h3>
+
+        <form (ngSubmit)="savePrinter()">
+          <div class="form-group">
+            <label>Printer Name *</label>
+            <input type="text" [(ngModel)]="newPrinter.name" name="name" placeholder="e.g., Bambu Lab X1">
+          </div>
+
+          <div class="form-group">
+            <label>Printer Type *</label>
+            <select [(ngModel)]="newPrinter.type" name="type">
+              <option *ngFor="let type of printerTypes" [value]="type">{{ type | uppercase }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Connection Type *</label>
+            <select [(ngModel)]="newPrinter.connection_type" name="connection_type">
+              <option *ngFor="let type of connectionTypes" [value]="type">{{ type }}</option>
+            </select>
+          </div>
+
+          <!-- Conditional fields based on connection type -->
+          <div *ngIf="newPrinter.connection_type === 'bambu_cloud'" class="form-group">
+            <label>Serial Number *</label>
+            <input type="text" [(ngModel)]="newPrinter.serial_number" name="serial_number" placeholder="Printer serial number">
+          </div>
+
+          <div *ngIf="newPrinter.connection_type === 'bambu_cloud'" class="form-group">
+            <label>API Key *</label>
+            <input type="password" [(ngModel)]="newPrinter.api_key" name="api_key" placeholder="Bambu Connect API key">
+          </div>
+
+          <div *ngIf="newPrinter.connection_type === 'bambu_lan'" class="form-group">
+            <label>Printer IP Address *</label>
+            <input type="text" [(ngModel)]="newPrinter.api_url" name="api_url" placeholder="192.168.1.100">
+          </div>
+
+          <div *ngIf="newPrinter.connection_type === 'bambu_lan'" class="form-group">
+            <label>Access Code *</label>
+            <input type="password" [(ngModel)]="newPrinter.access_code" name="access_code" placeholder="Printer access code">
+          </div>
+
+          <div *ngIf="newPrinter.connection_type === 'octoprint' || newPrinter.connection_type === 'klipper'" class="form-group">
+            <label>API URL *</label>
+            <input type="text" [(ngModel)]="newPrinter.api_url" name="api_url" placeholder="http://192.168.1.100:5000">
+          </div>
+
+          <div *ngIf="newPrinter.connection_type === 'octoprint' || newPrinter.connection_type === 'klipper'" class="form-group">
+            <label>API Key *</label>
+            <input type="password" [(ngModel)]="newPrinter.api_key" name="api_key" placeholder="Your API key">
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              {{ loading ? 'Saving...' : (isAdding ? 'Add Printer' : 'Update Printer') }}
+            </button>
+            <button type="button" (click)="cancel()" class="btn btn-secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Printer Details View -->
+      <div *ngIf="selectedPrinter && !isAdding && !isEditing" class="details-section">
+        <div class="section-header">
+          <h3>{{ selectedPrinter.name }}</h3>
+          <div class="actions">
+            <button (click)="startEditing()" class="btn btn-secondary">Edit</button>
+            <button (click)="deletePrinter(selectedPrinter!)" class="btn btn-danger">Delete</button>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          <div class="detail-row">
+            <label>Type:</label>
+            <span>{{ selectedPrinter.type | uppercase }}</span>
+          </div>
+          <div class="detail-row">
+            <label>Connection:</label>
+            <span>{{ selectedPrinter.connection_type }}</span>
+          </div>
+          <div class="detail-row">
+            <label>Status:</label>
+            <span class="status-badge" [class]="'status-' + (selectedPrinter.status || 'unknown')">
+              {{ selectedPrinter.status || 'unknown' }}
+            </span>
+          </div>
+          <div *ngIf="selectedPrinter.utilization_pct" class="detail-row">
+            <label>Utilization:</label>
+            <span>{{ selectedPrinter.utilization_pct }}%</span>
+          </div>
+          <div *ngIf="selectedPrinter.current_job" class="detail-row">
+            <label>Current Job:</label>
+            <span>{{ selectedPrinter.current_job }}</span>
+          </div>
+          <div class="detail-row">
+            <label>Added:</label>
+            <span>{{ selectedPrinter.created_at | date: 'short' }}</span>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button routerLink="/printer/{{ selectedPrinter.id }}/materials" class="btn btn-secondary">
+            Manage Materials
+          </button>
+          <button routerLink="/printer/{{ selectedPrinter.id }}/notifications" class="btn btn-secondary">
+            Notifications
+          </button>
+          <button routerLink="/printer/{{ selectedPrinter.id }}/queue" class="btn btn-secondary">
+            Print Queue
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!selectedPrinter && !isAdding && !isEditing" class="empty-state-details">
+        <p>Select a printer or add a new one to get started</p>
+      </div>
+    </div>
+  </div>
+</div>
