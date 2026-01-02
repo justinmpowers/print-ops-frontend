@@ -79,6 +79,51 @@
     margin: 0 auto;
 }
 
+/* Alerts Bar */
+.alerts-bar {
+    padding: 10px 30px;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.alert-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.alert-icon {
+    font-size: 18px;
+}
+
+.alert-link {
+    margin-left: 8px;
+    color: #3749a3;
+    text-decoration: underline;
+}
+
+.alert-details {
+    margin-left: 8px;
+    color: #555;
+    font-weight: 500;
+}
+
+.alert-warning {
+    background: #fff8e1;
+    border: 1px solid #ffecb3;
+    color: #8d6e63;
+}
+
+.alert-error {
+    background: #ffebee;
+    border: 1px solid #ffcdd2;
+    color: #b71c1c;
+}
+
 .section-header {
     display: flex;
     justify-content: space-between;

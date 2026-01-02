@@ -1,5 +1,5 @@
 # Multi-stage build for Angular frontend
-# Version: 2.0.0
+ARG VERSION
 FROM node:22-alpine as builder
 
 # Set working directory
@@ -43,6 +43,11 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Expose port
 EXPOSE 4200
+
+# Add labels for container metadata
+LABEL version="${VERSION}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.title="J3D Frontend"
 
 # Start nginx (runs as nginx user by default with our config)
 CMD ["nginx", "-g", "daemon off;"]
