@@ -43,7 +43,7 @@
             </span>
             <span class="alert-details" *ngIf="lowStockFilaments.length > 0">
                 —
-                {{ lowStockFilaments.slice(0,3).map(f => f.material + ' ' + f.color + ' (' + f.current_amount + f.unit + ')').join(', ') }}
+                {{ getLowStockFilamentsDisplay() }}
                 <span *ngIf="lowStockFilaments.length > 3">+{{ lowStockFilaments.length - 3 }} more</span>
             </span>
         </div>

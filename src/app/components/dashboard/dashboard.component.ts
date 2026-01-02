@@ -272,6 +272,13 @@ export class DashboardComponent implements OnInit {
         });
     }
 
+    getLowStockFilamentsDisplay(): string {
+        return this.lowStockFilaments
+            .slice(0, 3)
+            .map(f => `${f.material} ${f.color} (${f.current_amount}${f.unit})`)
+            .join(', ');
+    }
+
     // ===== Alerts integration =====
     showAlertSettings = false;
     alertSettings: AlertSettings = { slack_webhook_url: '', discord_webhook_url: '', email_enabled: false, email_to: '' };
