@@ -508,5 +508,6 @@ Built with:
 ---
 
 **Made with ❤️ for 3D printing enthusiasts**
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/G2G81RI12A)
 
 Questions? Open an issue!
