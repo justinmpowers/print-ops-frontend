@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { AuthService } from 'services/auth.service';
 import { OrderService } from 'services/order.service';
 import { FilamentService } from 'services/filament.service';
+import { PrinterService, Printer } from 'services/printer.service';
+import { AlertsService, AlertSettings } from 'services/alerts.service';
 import { Order, Filament, ProductProfile, OrderNote, CommunicationLog } from 'models/types';
 import { AnalyticsComponent } from 'components/analytics/analytics.component';
 import { ProductionComponent } from 'components/production/production.component';
@@ -44,6 +46,9 @@ export class DashboardComponent implements OnInit {
     labelDrafts: Record<number, { provider: string; tracking: string }> = {};
     photoFiles: Record<number, File | null> = {};
     filaments: Filament[] = [];
+    lowStockFilaments: Filament[] = [];
+    printerIssues: string[] = [];
+    private printerPollIntervalId: any = null;
     productProfiles: ProductProfile[] = [];
     username: string = '';
     shopName: string = '';
@@ -89,7 +94,9 @@ export class DashboardComponent implements OnInit {
         private orderService: OrderService,
         private filamentService: FilamentService,
         private router: Router,
-        private http: HttpClient
+        private http: HttpClient,
+            private printerService: PrinterService,
+            private alertsService: AlertsService
     ) { }
 
     ngOnInit(): void {
@@ -107,6 +114,20 @@ export class DashboardComponent implements OnInit {
         
         // Auto-sync orders on initial load
         this.autoSyncOrders();
+
+        // Initial checks
+        this.checkLowStockAlerts();
+        this.checkPrinterAlerts();
+
+        // Start periodic printer alert polling
+        this.startPrinterAlertPolling();
+    }
+
+    ngOnDestroy(): void {
+        if (this.printerPollIntervalId) {
+            clearInterval(this.printerPollIntervalId);
+            this.printerPollIntervalId = null;
+        }
     }
 
     autoSyncOrders(): void {
@@ -213,11 +234,107 @@ export class DashboardComponent implements OnInit {
         this.filamentService.getFilaments().subscribe(
             (response) => {
                 this.filaments = response.filaments;
+                this.lowStockFilaments = this.filaments.filter(f => f.is_low_stock || (typeof f.low_stock_threshold === 'number' && f.current_amount <= f.low_stock_threshold));
             },
             (error) => {
                 console.error('Error loading filaments:', error);
             }
         );
+    }
+
+    private checkLowStockAlerts(): void {
+        // If filaments already loaded, compute immediately; otherwise rely on loadFilaments callback
+        if (this.filaments && this.filaments.length > 0) {
+            this.lowStockFilaments = this.filaments.filter(f => f.is_low_stock || (typeof f.low_stock_threshold === 'number' && f.current_amount <= f.low_stock_threshold));
+        }
+    }
+
+    private startPrinterAlertPolling(): void {
+        // Poll every 60 seconds for printer issues
+        this.printerPollIntervalId = setInterval(() => {
+            this.checkPrinterAlerts();
+        }, 60000);
+    }
+
+    private checkPrinterAlerts(): void {
+        this.printerService.getPrinters().subscribe({
+            next: (printers: Printer[]) => {
+                const problematic = printers.filter(p => {
+                    const s = (p.status || '').toLowerCase();
+                    return s.includes('error') || s.includes('fail') || s.includes('fault') || s.includes('offline');
+                });
+                this.printerIssues = problematic.map(p => p.name || `Printer #${p.id}`);
+            },
+            error: (err) => {
+                // Non-blocking: do not surface to UI
+                console.error('Failed to check printer alerts', err);
+            }
+        });
+    }
+
+    // ===== Alerts integration =====
+    showAlertSettings = false;
+    alertSettings: AlertSettings = { slack_webhook_url: '', discord_webhook_url: '', email_enabled: false, email_to: '' };
+    alertPreview: { low_stock: any[]; printer_issues: any[] } | null = null;
+    triggeringAlerts = false;
+    savingAlertSettings = false;
+
+    openAlertSettings(): void {
+        this.showAlertSettings = true;
+        this.loadAlertSettings();
+        this.loadAlertPreview();
+    }
+
+    closeAlertSettings(): void {
+        this.showAlertSettings = false;
+    }
+
+    loadAlertSettings(): void {
+        this.alertsService.getSettings().subscribe({
+            next: (settings) => {
+                this.alertSettings = settings || this.alertSettings;
+            },
+            error: (err) => console.error('Failed to load alert settings', err)
+        });
+    }
+
+    saveAlertSettings(): void {
+        this.savingAlertSettings = true;
+        this.alertsService.updateSettings(this.alertSettings).subscribe({
+            next: (settings) => {
+                this.alertSettings = settings;
+                this.savingAlertSettings = false;
+                alert('Alert settings saved');
+            },
+            error: (err) => {
+                console.error('Failed to save alert settings', err);
+                this.savingAlertSettings = false;
+                alert('Failed to save alert settings');
+            }
+        });
+    }
+
+    loadAlertPreview(): void {
+        this.alertsService.preview().subscribe({
+            next: (data) => this.alertPreview = data,
+            error: (err) => console.error('Failed to load alert preview', err)
+        });
+    }
+
+    triggerAlerts(): void {
+        this.triggeringAlerts = true;
+        this.alertsService.trigger().subscribe({
+            next: (res) => {
+                this.triggeringAlerts = false;
+                const ch = (res.channels || []).join(', ') || 'none';
+                alert(`Alerts sent: ${res.sent ? 'yes' : 'no'} (channels: ${ch})`);
+            },
+            error: (err) => {
+                console.error('Failed to trigger alerts', err);
+                this.triggeringAlerts = false;
+                alert('Failed to send alerts');
+            }
+        });
     }
 
     syncOrders(): void {
