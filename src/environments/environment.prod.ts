@@ -6,5 +6,5 @@
 
 export const environment = {
   production: true,
-  apiUrl: '/api'  // Uses same domain, adjust if needed for different domain
+  apiUrl: process.env['API_URL'] || '/api'  // Uses API_URL env var, defaults to /api
 };
