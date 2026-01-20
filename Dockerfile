@@ -20,6 +20,9 @@ RUN npm run build -- --configuration production
 # Production stage - use nginx
 FROM nginx:alpine
 
+# Redeclare VERSION ARG for use in this stage
+ARG VERSION
+
 # Install curl for health checks
 RUN apk add --no-cache curl
 
