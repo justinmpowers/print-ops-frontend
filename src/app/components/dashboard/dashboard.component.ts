@@ -13,18 +13,32 @@ import { AnalyticsComponent } from 'components/analytics/analytics.component';
 import { ProductionComponent } from 'components/production/production.component';
 import { PrinterManagementComponent } from 'components/printer-management/printer-management.component';
 import { ManyfoldPickerComponent } from 'components/manyfold-picker/manyfold-picker.component';
+import { IconComponent, IconName } from 'components/icon/icon.component';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'environments/environment';
+
+type DashboardTab = 'orders' | 'filaments' | 'analytics' | 'products' | 'production' | 'printers' | 'integrations';
 
 @Component({
     selector: 'app-dashboard',
     standalone: true,
-    imports: [CommonModule, FormsModule, AnalyticsComponent, ProductionComponent, PrinterManagementComponent, ManyfoldPickerComponent],
+    imports: [CommonModule, FormsModule, AnalyticsComponent, ProductionComponent, PrinterManagementComponent, ManyfoldPickerComponent, IconComponent],
     templateUrl: './dashboard.component.html',
     styleUrls: ['./dashboard.component.scss'],
 })
 export class DashboardComponent implements OnInit {
-    activeTab: 'orders' | 'filaments' | 'analytics' | 'products' | 'production' | 'printers' | 'integrations' = 'orders';
+    activeTab: DashboardTab = 'orders';
+    readonly navItems: { id: DashboardTab; label: string; icon: IconName }[] = [
+        { id: 'orders', label: 'Orders', icon: 'orders' },
+        { id: 'production', label: 'Production', icon: 'production' },
+        { id: 'printers', label: 'Printers', icon: 'printers' },
+        { id: 'filaments', label: 'Filament', icon: 'filaments' },
+        { id: 'products', label: 'Products', icon: 'products' },
+        { id: 'analytics', label: 'Analytics', icon: 'analytics' },
+        { id: 'integrations', label: 'Integrations', icon: 'integrations' },
+    ];
+    sidebarOpen = false;   // only matters on narrow screens, where the sidebar is a drawer
+    expandedOrders: Set<number> = new Set();
     orders: Order[] = [];
     selectedOrders: Set<number> = new Set();
     orderFilters: {
@@ -864,6 +878,43 @@ export class DashboardComponent implements OnInit {
             cost_per_gram: 0,
             low_stock_threshold: 100
         };
+    }
+
+    get pageTitle(): string {
+        return this.navItems.find(i => i.id === this.activeTab)?.label ?? '';
+    }
+
+    selectTab(tab: DashboardTab): void {
+        this.activeTab = tab;
+        this.sidebarOpen = false;
+    }
+
+    toggleOrderDetails(order: Order): void {
+        if (this.expandedOrders.has(order.id)) {
+            this.expandedOrders.delete(order.id);
+            return;
+        }
+        this.expandedOrders.add(order.id);
+        this.loadNotes(order);
+        this.loadCommunications(order);
+    }
+
+    itemsSummary(order: Order): string {
+        const items = order.items ?? [];
+        if (items.length === 0) return 'No items';
+        const first = `${items[0].quantity} × ${items[0].title}`;
+        return items.length > 1 ? `${first} +${items.length - 1} more` : first;
+    }
+
+    remainingPct(filament: Filament): number {
+        if (!filament.initial_amount) return 0;
+        return Math.max(0, Math.min(100, Math.round((filament.current_amount / filament.initial_amount) * 100)));
+    }
+
+    formatMinutes(minutes: number): string {
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        return h ? (m ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
     }
 
     formatDate(dateString: string): string {

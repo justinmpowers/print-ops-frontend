@@ -4,10 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ProductionService } from '../../services/production.service';
 import { Order, PrintSession } from '../../models/types';
 
+import { IconComponent } from 'components/icon/icon.component';
+
 @Component({
   selector: 'app-production',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './production.component.html',
   styleUrls: ['./production.component.scss']
 })

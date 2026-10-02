@@ -1,7 +1,7 @@
 <div class="pm-container">
   <div class="pm-header">
-    <h2>Printer Management</h2>
-    <button (click)="startAdding()" class="btn btn-primary">+ Add Printer</button>
+    <span class="pm-count">{{ printers.length }} {{ printers.length === 1 ? 'printer' : 'printers' }}</span>
+    <button (click)="startAdding()" class="btn btn-primary btn-sm">+ Add printer</button>
   </div>
 
   <div *ngIf="error" class="alert alert-error">
