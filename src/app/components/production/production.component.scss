@@ -496,3 +496,54 @@
 
   .queue-table { overflow-x: auto; }
 }
+
+
+/* ===== Layout refresh: sits inside the dashboard shell ===== */
+.production-container { padding: 0; max-width: none; }
+
+.toolbar { align-items: center; }
+.filters { flex-direction: row; flex-wrap: wrap; }
+.filter-select { width: auto; min-width: 150px; }
+.btn-secondary.icon-only { display: inline-grid; place-items: center; padding: 8px; }
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.stat-label { text-transform: none; letter-spacing: 0; }
+
+.priority-cell { display: flex; align-items: center; gap: 6px; }
+.priority-controls { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
+tr:hover .priority-controls, .priority-controls:focus-within { opacity: 1; }
+.btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  &:hover:not(:disabled) { color: var(--primary-dark); border-color: var(--primary); }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+}
+
+.action-buttons { display: flex; gap: 6px; align-items: center; }
+.row-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font: 600 0.78rem var(--font);
+  cursor: pointer;
+  white-space: nowrap;
+  &:hover { background: var(--bg-subtle); color: var(--text); }
+  &.primary { background: var(--primary); border-color: var(--primary); color: #fff; &:hover { background: var(--primary-dark); } }
+  &.success { background: var(--success); border-color: var(--success); color: #fff; &:hover { background: #059669; } }
+}
+.failure-badge { color: #b91c1c; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
