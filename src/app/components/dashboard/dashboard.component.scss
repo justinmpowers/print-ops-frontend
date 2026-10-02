@@ -451,6 +451,7 @@ $sidebar-w: 232px;
 }
 
 /* ===== Integrations ===== */
+.integrations-section { display: flex; flex-direction: column; gap: 16px; }
 .integration-card {
   max-width: 620px;
   padding: 22px;

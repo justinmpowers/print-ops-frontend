@@ -1,0 +1,51 @@
+<div class="devices">
+  <h2>Devices</h2>
+  <p class="hint">
+    Device keys let an unattended device, such as a PrintHub board next to your printers, report prints
+    starting and finishing. Create a key here and paste it into the device's config.
+  </p>
+
+  <div *ngIf="error()" class="alert alert-error">{{ error() }}</div>
+
+  <div class="new-key" *ngIf="created() as device">
+    <div class="new-key-head">
+      <strong>Key for "{{ device.name }}"</strong>
+      <button class="icon-btn" (click)="dismissCreated()" aria-label="Dismiss"><app-icon name="close" [size]="16"></app-icon></button>
+    </div>
+    <p>Copy it now. It is not stored and can't be shown again.</p>
+    <div class="key-row">
+      <code>{{ device.key }}</code>
+      <button class="btn btn-secondary btn-sm" (click)="copyKey()">
+        <app-icon [name]="copied() ? 'check' : 'orders'" [size]="15"></app-icon>
+        {{ copied() ? 'Copied' : 'Copy' }}
+      </button>
+    </div>
+  </div>
+
+  <form class="create-row" (ngSubmit)="create()">
+    <input type="text" [(ngModel)]="newName" name="device_name" maxlength="255" placeholder="Device name, e.g. PrintHub"
+           aria-label="Device name">
+    <button type="submit" class="btn btn-primary" [disabled]="!newName.trim() || creating()">
+      <app-icon name="plus" [size]="15"></app-icon>
+      {{ creating() ? 'Creating…' : 'Create key' }}
+    </button>
+  </form>
+
+  <p *ngIf="loading()" class="muted">Loading…</p>
+  <p *ngIf="!loading() && devices().length === 0" class="muted">No device keys yet.</p>
+
+  <ul class="device-list" *ngIf="devices().length > 0">
+    <li *ngFor="let device of devices()" [class.revoked]="device.revoked_at">
+      <div class="device-main">
+        <span class="device-name">{{ device.name }}</span>
+        <span class="device-meta">
+          <code>{{ device.key_prefix }}…</code>
+          · created {{ utc(device.created_at) | date: 'mediumDate' }}
+          · {{ device.last_used_at ? 'last used ' + (utc(device.last_used_at) | date: 'short') : 'never used' }}
+        </span>
+      </div>
+      <span class="badge badge-neutral" *ngIf="device.revoked_at">Revoked</span>
+      <button class="btn btn-secondary btn-sm" *ngIf="!device.revoked_at" (click)="revoke(device)">Revoke</button>
+    </li>
+  </ul>
+</div>
