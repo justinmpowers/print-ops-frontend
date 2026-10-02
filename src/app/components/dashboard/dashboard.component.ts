@@ -345,8 +345,9 @@ export class DashboardComponent implements OnInit {
         discord_webhook_url: '',
         email_enabled: false,
         email_to: '',
-        telegram_bot_token: '',
-        telegram_chat_id: '',
+        ntfy_server: '',
+        ntfy_topic: '',
+        ntfy_token: '',
     };
     alertPreview: { low_stock: any[]; printer_issues: any[] } | null = null;
     triggeringAlerts = false;
