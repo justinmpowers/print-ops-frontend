@@ -8,310 +8,373 @@
     </div>
 </div>
 
-<div class="dashboard">
-    <header class="dashboard-header">
-        <div class="header-left">
-            <h1>3D Print Management</h1>
-            <span class="shop-badge" *ngIf="shopName">{{ shopName }}</span>
-            <span class="version-badge" *ngIf="appVersion">v{{ appVersion }}</span>
-        </div>
-        <div class="header-actions">
-            <span class="user-info" *ngIf="username">Welcome, {{ username }}</span>
-            <button class="sync-btn" (click)="triggerAlerts()" [disabled]="triggeringAlerts">{{ triggeringAlerts ? 'Sending…' : 'Send Alerts' }}</button>
-            <button class="add-btn" (click)="openAlertSettings()">Alert Settings</button>
-            <button class="logout-btn" (click)="logout()">Logout</button>
-        </div>
-    </header>
-
-    <nav class="dashboard-nav">
-        <button class="nav-btn" [class.active]="activeTab === 'orders'" (click)="activeTab = 'orders'">
-            Orders
-        </button>
-        <button class="nav-btn" [class.active]="activeTab === 'production'" (click)="activeTab = 'production'">
-            Production Queue
-        </button>
-        <button class="nav-btn" [class.active]="activeTab === 'printers'" (click)="activeTab = 'printers'">
-            Printers
-        </button>
-        <button class="nav-btn" [class.active]="activeTab === 'filaments'" (click)="activeTab = 'filaments'">
-            Filament Inventory
-        </button>
-        <button class="nav-btn" [class.active]="activeTab === 'products'" (click)="activeTab = 'products'">
-            Product Templates
-        </button>
-        <button class="nav-btn" [class.active]="activeTab === 'analytics'" (click)="activeTab = 'analytics'">
-            Analytics
-        </button>
-        <button class="nav-btn" [class.active]="activeTab === 'integrations'" (click)="activeTab = 'integrations'">
-            Integrations
-        </button>
-    </nav>
-
-    <!-- Alerts Bar -->
-    <div class="alerts-bar">
-        <div *ngIf="lowStockFilaments.length > 0" class="alert-banner alert-warning">
-            <span class="alert-icon">⚠️</span>
-            <span>
-                {{ lowStockFilaments.length }} filament{{ lowStockFilaments.length > 1 ? 's' : '' }} low on stock.
-                <a href="#" (click)="$event.preventDefault(); activeTab = 'filaments'" class="alert-link">Review inventory</a>
-            </span>
-            <span class="alert-details" *ngIf="lowStockFilaments.length > 0">
-                —
-                {{ getLowStockFilamentsDisplay() }}
-                <span *ngIf="lowStockFilaments.length > 3">+{{ lowStockFilaments.length - 3 }} more</span>
+<div class="dashboard" [class.nav-open]="sidebarOpen">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand-mark"><app-icon name="printers" [size]="20"></app-icon></span>
+            <span class="brand-text">
+                <span class="brand-name">PrintOps</span>
+                <span class="brand-shop" *ngIf="shopName">{{ shopName }}</span>
             </span>
         </div>
 
-        <div *ngIf="printerIssues.length > 0" class="alert-banner alert-error">
-            <span class="alert-icon">🛑</span>
-            <span>
-                Printer issue detected: {{ printerIssues.slice(0,3).join(', ') }}
-                <span *ngIf="printerIssues.length > 3">+{{ printerIssues.length - 3 }} more</span>
-            </span>
-            <a href="#" (click)="$event.preventDefault(); activeTab = 'printers'" class="alert-link">Open printers</a>
+        <nav class="side-nav" aria-label="Sections">
+            <button *ngFor="let item of navItems" class="nav-btn" [class.active]="activeTab === item.id"
+                    [attr.aria-current]="activeTab === item.id ? 'page' : null" (click)="selectTab(item.id)">
+                <app-icon [name]="item.icon"></app-icon>
+                <span>{{ item.label }}</span>
+                <span class="nav-count" *ngIf="item.id === 'filaments' && lowStockFilaments.length">{{ lowStockFilaments.length }}</span>
+                <span class="nav-count danger" *ngIf="item.id === 'printers' && printerIssues.length">{{ printerIssues.length }}</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-block" *ngIf="username">
+                <span class="avatar">{{ username.charAt(0).toUpperCase() }}</span>
+                <span class="user-text">
+                    <span class="user-name">{{ username }}</span>
+                    <span class="version" *ngIf="appVersion">v{{ appVersion }}</span>
+                </span>
+            </div>
+            <button class="icon-btn on-dark" (click)="logout()" title="Log out" aria-label="Log out">
+                <app-icon name="logout"></app-icon>
+            </button>
         </div>
-    </div>
+    </aside>
+    <div class="scrim" (click)="sidebarOpen = false"></div>
+
+    <div class="main">
+        <header class="topbar">
+            <button class="icon-btn menu-btn" (click)="sidebarOpen = !sidebarOpen" aria-label="Menu">
+                <app-icon name="menu"></app-icon>
+            </button>
+            <h1>{{ pageTitle }}</h1>
+
+            <div class="topbar-alerts">
+                <button *ngIf="lowStockFilaments.length > 0" class="alert-pill warning" (click)="selectTab('filaments')"
+                        [title]="getLowStockFilamentsDisplay()">
+                    <app-icon name="alert" [size]="15"></app-icon>
+                    {{ lowStockFilaments.length }} low on filament
+                </button>
+                <button *ngIf="printerIssues.length > 0" class="alert-pill danger" (click)="selectTab('printers')"
+                        [title]="printerIssues.join(', ')">
+                    <app-icon name="alert" [size]="15"></app-icon>
+                    {{ printerIssues.length }} printer {{ printerIssues.length > 1 ? 'issues' : 'issue' }}
+                </button>
+            </div>
+
+            <div class="topbar-actions">
+                <button class="btn btn-secondary btn-sm" (click)="triggerAlerts()" [disabled]="triggeringAlerts">
+                    <app-icon name="send" [size]="15"></app-icon>
+                    <span class="hide-sm">{{ triggeringAlerts ? 'Sending…' : 'Send alerts' }}</span>
+                </button>
+                <button class="icon-btn" (click)="openAlertSettings()" title="Alert settings" aria-label="Alert settings">
+                    <app-icon name="bell"></app-icon>
+                </button>
+            </div>
+        </header>
 
     <main class="dashboard-content">
         <!-- Orders Section -->
         <section *ngIf="activeTab === 'orders'" class="orders-section">
-            <div class="section-header">
-                <h2>Your Orders</h2>
-                <div class="sync-status">
-                    <span *ngIf="syncingOrders" class="syncing-indicator">🔄 Syncing...</span>
-                    <button class="sync-btn" (click)="syncOrders()" [disabled]="syncingOrders">
-                        {{ syncingOrders ? 'Syncing...' : '🔄 Refresh from Etsy' }}
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <ng-container *ngIf="selectedOrders.size > 0; else noSelection">
+                        <span class="selection-count">{{ selectedOrders.size }} selected</span>
+                        <button class="btn btn-secondary btn-sm" (click)="bulkMarkShipped()">Mark shipped</button>
+                        <button class="btn btn-secondary btn-sm" (click)="bulkAssignFilament()">Assign filament</button>
+                        <button class="btn btn-ghost btn-sm" (click)="clearSelection()">Clear</button>
+                    </ng-container>
+                    <ng-template #noSelection>
+                        <span class="muted-count">{{ orders.length }} {{ orders.length === 1 ? 'order' : 'orders' }}</span>
+                        <button class="btn btn-ghost btn-sm" *ngIf="orders.length > 0" (click)="selectAllOrders()">Select all</button>
+                    </ng-template>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-secondary btn-sm" [class.is-active]="showFilters || activeFilterCount() > 0" (click)="toggleFilters()">
+                        <app-icon name="filter" [size]="15"></app-icon>
+                        Filters
+                        <span class="count-badge" *ngIf="activeFilterCount() > 0">{{ activeFilterCount() }}</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" (click)="syncOrders()" [disabled]="syncingOrders">
+                        <app-icon name="refresh" [size]="15" [class.spin]="syncingOrders"></app-icon>
+                        {{ syncingOrders ? 'Syncing…' : 'Sync from Etsy' }}
                     </button>
                 </div>
             </div>
 
-            <div class="orders-controls">
-                <div class="controls-header">
-                    <button class="toggle-filters-btn" (click)="toggleFilters()">
-                        {{ showFilters ? 'Hide Filters' : 'Show Filters' }}
-                    </button>
-                    <div class="active-summary" *ngIf="activeFilterCount() > 0 && !showFilters">
-                        <span class="summary-label">Active:</span>
-                        <span class="chip" *ngFor="let chip of activeFilterChips()">{{ chip }}</span>
-                        <button class="filter-btn inline" (click)="applyFilters()">Apply</button>
-                        <button class="filter-btn ghost inline" (click)="clearFilters()">Clear</button>
-                    </div>
-                </div>
-                <div class="filters" *ngIf="showFilters">
-                    <input type="text" placeholder="Status" [(ngModel)]="orderFilters.status">
-                    <input type="text" placeholder="Production Status" [(ngModel)]="orderFilters.production_status">
-                    <input type="text" placeholder="Product keyword" [(ngModel)]="orderFilters.product">
-                    <input type="date" [(ngModel)]="orderFilters.start_date">
-                    <input type="date" [(ngModel)]="orderFilters.end_date">
-                    <input type="number" placeholder="Min total" [(ngModel)]="orderFilters.min_total">
-                    <input type="number" placeholder="Max total" [(ngModel)]="orderFilters.max_total">
-                    <button class="filter-btn" (click)="applyFilters()">Apply</button>
-                    <button class="filter-btn ghost" (click)="clearFilters()">Clear</button>
-                </div>
-                <div class="bulk-actions">
-                    <button (click)="selectAllOrders()">Select All</button>
-                    <button (click)="clearSelection()">Clear</button>
-                    <button (click)="bulkMarkShipped()">Mark Shipped</button>
-                    <button (click)="bulkAssignFilament()">Assign Filament</button>
+            <div class="active-summary" *ngIf="activeFilterCount() > 0 && !showFilters">
+                <span class="chip" *ngFor="let chip of activeFilterChips()">{{ chip }}</span>
+                <button class="btn btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>
+            </div>
+
+            <div class="filters" *ngIf="showFilters">
+                <label>Status<input type="text" placeholder="e.g. pending" [(ngModel)]="orderFilters.status"></label>
+                <label>Production<input type="text" placeholder="e.g. queued" [(ngModel)]="orderFilters.production_status"></label>
+                <label>Product<input type="text" placeholder="Keyword" [(ngModel)]="orderFilters.product"></label>
+                <label>From<input type="date" [(ngModel)]="orderFilters.start_date"></label>
+                <label>To<input type="date" [(ngModel)]="orderFilters.end_date"></label>
+                <label>Min total<input type="number" placeholder="0" [(ngModel)]="orderFilters.min_total"></label>
+                <label>Max total<input type="number" placeholder="Any" [(ngModel)]="orderFilters.max_total"></label>
+                <div class="filter-actions">
+                    <button class="btn btn-primary btn-sm" (click)="applyFilters()">Apply</button>
+                    <button class="btn btn-ghost btn-sm" (click)="clearFilters()">Clear</button>
                 </div>
             </div>
 
-            <div *ngIf="orders.length > 0" class="orders-grid">
-                <div class="order-card" *ngFor="let order of orders">
-                    <div class="select-row">
-                        <input type="checkbox" [checked]="selectedOrders.has(order.id)" (change)="toggleOrderSelection(order.id)"> Select
-                    </div>
-                    <div class="order-header">
-                        <h3>Order #{{ order.etsy_order_id }}</h3>
-                        <span class="status" [class]="'status-' + order.status.toLowerCase()">
-                            {{ order.status }}
-                        </span>
-                    </div>
-                    <p><strong>Buyer:</strong> {{ order.buyer_name }}</p>
-                    <p><strong>Email:</strong> {{ order.buyer_email }}</p>
-                    <p><strong>Total:</strong> {{ order.currency }} {{ order.total_amount }}</p>
-                    <p><strong>Created:</strong> {{ formatDate(order.created_at) }}</p>
-                    <p *ngIf="order.total_filament_used > 0">
-                        <strong>Filament Used:</strong> {{ order.total_filament_used }}g
-                    </p>
-                    <div class="order-items" *ngIf="order.items.length > 0">
-                        <strong>Items:</strong>
-                        <ul>
-                            <li *ngFor="let item of order.items">
-                                {{ item.title }} (Qty: {{ item.quantity }})
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="order-actions">
-                        <button class="auto-assign-btn" (click)="autoAssignFilament(order)" [disabled]="order.filament_assigned">
-                            {{ order.filament_assigned ? '✓ Filament Assigned' : '🎯 Auto-Assign Filament' }}
-                        </button>
-                        <button class="manage-filament-btn" (click)="editOrderFilament(order)">
-                            Manual Assignment
+            <div *ngIf="orders.length > 0" class="order-list">
+                <article class="order" *ngFor="let order of orders" [class.selected]="selectedOrders.has(order.id)"
+                         [class.open]="expandedOrders.has(order.id)">
+                    <div class="order-row" (click)="toggleOrderDetails(order)">
+                        <input type="checkbox" [checked]="selectedOrders.has(order.id)" (click)="$event.stopPropagation()"
+                               (change)="toggleOrderSelection(order.id)" [attr.aria-label]="'Select order ' + order.etsy_order_id">
+                        <div class="cell order-id">
+                            <span class="primary-text">#{{ order.etsy_order_id }}</span>
+                            <span class="secondary-text">{{ formatDate(order.created_at) }}</span>
+                        </div>
+                        <div class="cell order-buyer">
+                            <span class="primary-text">{{ order.buyer_name }}</span>
+                            <span class="secondary-text">{{ order.buyer_email }}</span>
+                        </div>
+                        <div class="cell order-summary">{{ itemsSummary(order) }}</div>
+                        <div class="cell order-total">{{ order.total_amount | currency: (order.currency || 'USD') }}</div>
+                        <div class="cell order-chips">
+                            <span class="status" [class]="'status status-' + order.status.toLowerCase()">{{ order.status }}</span>
+                            <span class="status" *ngIf="order.production_status"
+                                  [class]="'status prod-' + order.production_status.toLowerCase()">{{ order.production_status }}</span>
+                        </div>
+                        <div class="cell order-quick" (click)="$event.stopPropagation()">
+                            <span class="assigned" *ngIf="order.filament_assigned">
+                                <app-icon name="check" [size]="15"></app-icon> Filament
+                            </span>
+                            <button class="btn btn-success btn-sm" *ngIf="!order.filament_assigned" (click)="autoAssignFilament(order)">
+                                Assign filament
+                            </button>
+                        </div>
+                        <button class="icon-btn expand-btn" [attr.aria-expanded]="expandedOrders.has(order.id)" aria-label="Order details">
+                            <app-icon name="chevron-down"></app-icon>
                         </button>
                     </div>
 
-                    <div class="notes" (mouseenter)="loadNotes(order)">
-                        <h4>Internal Notes</h4>
-                        <textarea rows="2" placeholder="Add a note" [(ngModel)]="noteDrafts[order.id]"></textarea>
-                        <button (click)="saveNote(order)">Save Note</button>
-                        <div class="note-list" *ngIf="notesCache[order.id]?.length">
-                            <div class="note-item" *ngFor="let note of notesCache[order.id]">
-                                <span class="note-date">{{ formatDate(note.created_at) }}</span>
-                                <p>{{ note.content }}</p>
+                    <div class="order-details" *ngIf="expandedOrders.has(order.id)">
+                        <div class="detail-panel">
+                            <h4>Items</h4>
+                            <ul class="item-list">
+                                <li *ngFor="let item of order.items">
+                                    <span>{{ item.title }}</span><span class="qty">× {{ item.quantity }}</span>
+                                </li>
+                            </ul>
+                            <p class="detail-line" *ngIf="order.total_filament_used > 0">
+                                Filament used <strong>{{ order.total_filament_used }}g</strong>
+                            </p>
+                            <button class="btn btn-secondary btn-sm" (click)="editOrderFilament(order)">Manual filament assignment</button>
+                        </div>
+
+                        <div class="detail-panel">
+                            <h4>Internal notes</h4>
+                            <div class="note-list" *ngIf="notesCache[order.id]?.length">
+                                <div class="note-item" *ngFor="let note of notesCache[order.id]">
+                                    <span class="note-date">{{ formatDate(note.created_at) }}</span>
+                                    <p>{{ note.content }}</p>
+                                </div>
+                            </div>
+                            <textarea rows="2" placeholder="Add a note" [(ngModel)]="noteDrafts[order.id]"></textarea>
+                            <button class="btn btn-primary btn-sm" (click)="saveNote(order)">Save note</button>
+                        </div>
+
+                        <div class="detail-panel">
+                            <h4>Customer log</h4>
+                            <div class="comm-list" *ngIf="commCache[order.id]?.length">
+                                <div class="comm-item" *ngFor="let log of commCache[order.id]">
+                                    <span class="comm-date">{{ formatDate(log.created_at) }}</span>
+                                    <span class="comm-chip">{{ log.direction }}</span>
+                                    <span class="comm-chip">{{ log.channel }}</span>
+                                    <p>{{ log.message }}</p>
+                                </div>
+                            </div>
+                            <textarea rows="2" placeholder="Log a message" [(ngModel)]="commDrafts[order.id].message"></textarea>
+                            <div class="comm-meta">
+                                <select [(ngModel)]="commDrafts[order.id].direction" aria-label="Direction">
+                                    <option value="outbound">Outbound</option>
+                                    <option value="inbound">Inbound</option>
+                                </select>
+                                <select [(ngModel)]="commDrafts[order.id].channel" aria-label="Channel">
+                                    <option value="message">Message</option>
+                                    <option value="email">Email</option>
+                                    <option value="phone">Phone</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <button class="btn btn-primary btn-sm" (click)="saveCommunication(order)">Log</button>
+                            </div>
+                        </div>
+
+                        <div class="detail-panel">
+                            <h4>Shipping</h4>
+                            <div *ngIf="order.tracking_number; else noTracking">
+                                <p class="detail-line">Tracking <strong class="mono">{{ order.tracking_number }}</strong></p>
+                                <p class="detail-line" *ngIf="order.shipping_provider">Provider <strong>{{ order.shipping_provider }}</strong></p>
+                                <p class="detail-line" *ngIf="order.shipping_label_status">Label <strong>{{ order.shipping_label_status }}</strong></p>
+                            </div>
+                            <ng-template #noTracking>
+                                <p class="muted">Tracking is managed in Etsy.</p>
+                            </ng-template>
+
+                            <h4 class="spaced">Finished photo</h4>
+                            <div *ngIf="order.photo_url" class="photo-preview">
+                                <img [src]="order.photo_url" alt="Finished order photo">
+                            </div>
+                            <div class="photo-upload">
+                                <input type="file" accept="image/*" (change)="onPhotoSelected($event, order)" aria-label="Choose photo">
+                                <button class="btn btn-secondary btn-sm" (click)="uploadPhoto(order)">Upload</button>
                             </div>
                         </div>
                     </div>
-
-                    <div class="communications" (mouseenter)="loadCommunications(order)">
-                        <h4>Customer Log</h4>
-                        <textarea rows="2" placeholder="Log a message" [(ngModel)]="commDrafts[order.id].message"></textarea>
-                        <div class="comm-meta">
-                            <select [(ngModel)]="commDrafts[order.id].direction">
-                                <option value="outbound">Outbound</option>
-                                <option value="inbound">Inbound</option>
-                            </select>
-                            <select [(ngModel)]="commDrafts[order.id].channel">
-                                <option value="message">Message</option>
-                                <option value="email">Email</option>
-                                <option value="phone">Phone</option>
-                                <option value="other">Other</option>
-                            </select>
-                            <button (click)="saveCommunication(order)">Log</button>
-                        </div>
-                        <div class="comm-list" *ngIf="commCache[order.id]?.length">
-                            <div class="comm-item" *ngFor="let log of commCache[order.id]">
-                                <span class="comm-date">{{ formatDate(log.created_at) }}</span>
-                                <span class="comm-chip">{{ log.direction }}</span>
-                                <span class="comm-chip">{{ log.channel }}</span>
-                                <p>{{ log.message }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="shipping-block">
-                        <h4>Shipping</h4>
-                        <div *ngIf="order.tracking_number; else noTracking">
-                            <p><strong>Tracking:</strong> {{ order.tracking_number }}</p>
-                            <p *ngIf="order.shipping_provider"><strong>Provider:</strong> {{ order.shipping_provider }}</p>
-                            <p *ngIf="order.shipping_label_status"><strong>Status:</strong> {{ order.shipping_label_status }}</p>
-                        </div>
-                        <ng-template #noTracking>
-                            <p class="muted">Tracking managed in Etsy.</p>
-                        </ng-template>
-                    </div>
-
-                    <div class="photo-block">
-                        <h4>Finished Photo</h4>
-                        <input type="file" (change)="onPhotoSelected($event, order)">
-                        <button (click)="uploadPhoto(order)">Upload</button>
-                        <div *ngIf="order.photo_url" class="photo-preview">
-                            <img [src]="order.photo_url" alt="Order photo">
-                        </div>
-                    </div>
-                </div>
+                </article>
             </div>
             <div *ngIf="orders.length === 0" class="empty-state">
-                <p>No orders yet. Click "Sync from Etsy" to load your orders.</p>
+                <app-icon name="orders" [size]="32"></app-icon>
+                <p>No orders yet. Use "Sync from Etsy" to load your orders.</p>
             </div>
         </section>
 
         <!-- Filament Section -->
         <section *ngIf="activeTab === 'filaments'" class="filaments-section">
-            <div class="section-header">
-                <h2>Filament Inventory</h2>
-                <button class="add-btn" (click)="showAddFilament = true">Add Filament</button>
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <span class="muted-count">{{ filaments.length }} {{ filaments.length === 1 ? 'spool' : 'spools' }}</span>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-primary btn-sm" (click)="showAddFilament = true">
+                        <app-icon name="plus" [size]="15"></app-icon> Add filament
+                    </button>
+                </div>
             </div>
 
             <div *ngIf="filaments.length > 0" class="filaments-grid">
                 <div class="filament-card" *ngFor="let filament of filaments" [class.low-stock]="filament.is_low_stock">
-                    <div class="low-stock-badge" *ngIf="filament.is_low_stock">⚠️ Low Stock</div>
-                    <div class="filament-header">
-                        <h3>{{ filament.material }} - {{ filament.color }}</h3>
-                        <div class="filament-actions">
-                            <button class="edit-btn" (click)="editFilament(filament)">Edit</button>
-                            <button class="delete-btn" (click)="deleteFilament(filament.id)">Delete</button>
+                    <div class="card-head">
+                        <div class="card-title">
+                            <span class="material-tag">{{ filament.material }}</span>
+                            <h3>{{ filament.color }}</h3>
+                        </div>
+                        <div class="card-actions">
+                            <button class="icon-btn" (click)="editFilament(filament)" title="Edit" aria-label="Edit filament">
+                                <app-icon name="edit" [size]="16"></app-icon>
+                            </button>
+                            <button class="icon-btn danger" (click)="deleteFilament(filament.id)" title="Delete" aria-label="Delete filament">
+                                <app-icon name="trash" [size]="16"></app-icon>
+                            </button>
                         </div>
                     </div>
-                    <p><strong>Initial:</strong> {{ filament.initial_amount }}{{ filament.unit }}</p>
-                    <p><strong>Current:</strong> {{ filament.current_amount }}{{ filament.unit }}</p>
-                    <p><strong>Used:</strong> {{ filament.used_amount }}{{ filament.unit }}</p>
-                    <p><strong>Low Stock Alert:</strong> {{ filament.low_stock_threshold }}{{ filament.unit }}</p>
-                    <div class="usage-bar">
-                        <div class="used" [style.width]="(filament.used_amount / filament.initial_amount * 100) + '%'">
-                        </div>
+
+                    <div class="stock">
+                        <span class="stock-amount">{{ filament.current_amount }}<small>{{ filament.unit }}</small></span>
+                        <span class="stock-of">of {{ filament.initial_amount }}{{ filament.unit }}</span>
+                        <span class="badge badge-warning" *ngIf="filament.is_low_stock">Low stock</span>
                     </div>
-                    <p *ngIf="filament.cost_per_gram">
-                        <strong>Cost/g:</strong> ${{ filament.cost_per_gram }}
-                    </p>
+                    <div class="usage-bar" role="img" [attr.aria-label]="remainingPct(filament) + '% remaining'">
+                        <div class="remaining" [style.width.%]="remainingPct(filament)"></div>
+                    </div>
+
+                    <dl class="meta">
+                        <div><dt>Used</dt><dd>{{ filament.used_amount }}{{ filament.unit }}</dd></div>
+                        <div><dt>Alert at</dt><dd>{{ filament.low_stock_threshold }}{{ filament.unit }}</dd></div>
+                        <div *ngIf="filament.cost_per_gram"><dt>Cost / g</dt><dd>${{ filament.cost_per_gram }}</dd></div>
+                    </dl>
                 </div>
             </div>
             <div *ngIf="filaments.length === 0" class="empty-state">
-                <p>No filaments tracked yet. Click "Add Filament" to start tracking.</p>
+                <app-icon name="filaments" [size]="32"></app-icon>
+                <p>No filaments tracked yet. Use "Add filament" to start tracking.</p>
             </div>
         </section>
 
         <!-- Product Templates Section -->
         <section *ngIf="activeTab === 'products'" class="products-section">
-            <div class="section-header">
-                <h2>Product Templates</h2>
-                <div class="header-actions">
-                    <button class="sync-btn" (click)="syncEtsyListings()" [disabled]="syncingProducts">
-                        {{ syncingProducts ? 'Syncing...' : 'Sync from Etsy' }}
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <span class="muted-count">{{ productProfiles.length }} {{ productProfiles.length === 1 ? 'template' : 'templates' }}</span>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-secondary btn-sm" (click)="syncEtsyListings()" [disabled]="syncingProducts">
+                        <app-icon name="refresh" [size]="15" [class.spin]="syncingProducts"></app-icon>
+                        {{ syncingProducts ? 'Syncing…' : 'Sync from Etsy' }}
                     </button>
-                    <button class="add-btn" (click)="showAddProduct = true">Add Product</button>
+                    <button class="btn btn-primary btn-sm" (click)="showAddProduct = true">
+                        <app-icon name="plus" [size]="15"></app-icon> Add product
+                    </button>
                 </div>
             </div>
 
-            <div *ngIf="etsyNeedsReconnect" class="alert-warning">
-                Etsy listings sync needs additional permission. <button class="link-btn" (click)="reconnectEtsy()">Reconnect Etsy</button> to grant access.
+            <div *ngIf="etsyNeedsReconnect" class="alert alert-warning">
+                <span>Etsy listings sync needs additional permission.</span>
+                <button class="btn btn-secondary btn-sm" (click)="reconnectEtsy()">Reconnect Etsy</button>
             </div>
 
             <div *ngIf="productProfiles.length > 0" class="products-grid">
                 <div class="product-card" *ngFor="let product of productProfiles">
-                    <div class="product-header">
-                        <h3>{{ product.product_name }}</h3>
-                        <div class="product-actions">
-                            <button class="edit-btn" (click)="editProduct(product)">Edit</button>
-                            <button class="delete-btn" (click)="deleteProduct(product.id)">Delete</button>
+                    <div class="card-head">
+                        <img *ngIf="product.etsy_thumbnail_url" [src]="product.etsy_thumbnail_url" alt="" class="etsy-thumb">
+                        <div class="card-title">
+                            <span class="material-tag" *ngIf="product.category">{{ product.category }}</span>
+                            <h3>{{ product.product_name }}</h3>
+                        </div>
+                        <div class="card-actions">
+                            <button class="icon-btn" (click)="editProduct(product)" title="Edit" aria-label="Edit product">
+                                <app-icon name="edit" [size]="16"></app-icon>
+                            </button>
+                            <button class="icon-btn danger" (click)="deleteProduct(product.id)" title="Delete" aria-label="Delete product">
+                                <app-icon name="trash" [size]="16"></app-icon>
+                            </button>
                         </div>
                     </div>
-                    <div *ngIf="product.etsy_listing_id" class="etsy-linked">
-                        <img *ngIf="product.etsy_thumbnail_url" [src]="product.etsy_thumbnail_url" alt="" class="etsy-thumb">
-                        <a [href]="product.etsy_url" target="_blank" rel="noopener" class="badge-info">Etsy listing</a>
-                        <span *ngIf="product.etsy_price">${{ product.etsy_price }}</span>
+
+                    <p *ngIf="product.description" class="product-desc">{{ product.description }}</p>
+
+                    <div class="stat-row">
+                        <div class="stat"><span class="stat-value">{{ product.standard_filament_amount }}g</span><span class="stat-label">Filament</span></div>
+                        <div class="stat" *ngIf="product.print_time_minutes"><span class="stat-value">{{ formatMinutes(product.print_time_minutes) }}</span><span class="stat-label">Print time</span></div>
+                        <div class="stat" *ngIf="product.material_cost"><span class="stat-value">${{ product.material_cost }}</span><span class="stat-label">Material</span></div>
+                        <div class="stat" *ngIf="product.etsy_price"><span class="stat-value">${{ product.etsy_price }}</span><span class="stat-label">Etsy price</span></div>
                     </div>
-                    <div class="manyfold-link-row">
+
+                    <dl class="meta">
+                        <div *ngIf="product.preferred_material"><dt>Material</dt><dd>{{ product.preferred_material }}</dd></div>
+                        <div *ngIf="product.preferred_color"><dt>Color</dt><dd>{{ product.preferred_color }}</dd></div>
+                        <div *ngIf="product.nozzle_temp_c"><dt>Nozzle</dt><dd>{{ product.nozzle_temp_c }}°C</dd></div>
+                        <div *ngIf="product.bed_temp_c"><dt>Bed</dt><dd>{{ product.bed_temp_c }}°C</dd></div>
+                        <div *ngIf="product.print_speed_mms"><dt>Speed</dt><dd>{{ product.print_speed_mms }} mm/s</dd></div>
+                        <div *ngIf="product.layer_height_mm"><dt>Layer height</dt><dd>{{ product.layer_height_mm }} mm</dd></div>
+                        <div *ngIf="product.infill_percent"><dt>Infill</dt><dd>{{ product.infill_percent }}%</dd></div>
+                        <div *ngIf="product.support_settings"><dt>Supports</dt><dd>{{ product.support_settings }}</dd></div>
+                        <div *ngIf="product.labor_minutes"><dt>Labor</dt><dd>{{ product.labor_minutes }} min</dd></div>
+                        <div *ngIf="product.overhead_cost"><dt>Overhead</dt><dd>${{ product.overhead_cost }}</dd></div>
+                        <div *ngIf="product.target_margin_pct"><dt>Target margin</dt><dd>{{ product.target_margin_pct }}%</dd></div>
+                        <div *ngIf="product.suggested_price"><dt>Suggested price</dt><dd>${{ product.suggested_price }}</dd></div>
+                    </dl>
+
+                    <p *ngIf="product.notes" class="product-notes">{{ product.notes }}</p>
+
+                    <div class="card-links">
+                        <a *ngIf="product.etsy_listing_id" [href]="product.etsy_url" target="_blank" rel="noopener" class="link-chip">
+                            Etsy listing <app-icon name="external" [size]="13"></app-icon>
+                        </a>
                         <ng-container *ngIf="product.manyfold_model_id; else noManyfoldLink">
-                            <a [href]="product.manyfold_model_url" target="_blank" rel="noopener" class="badge-info">Manyfold model</a>
+                            <a [href]="product.manyfold_model_url" target="_blank" rel="noopener" class="link-chip">
+                                Manyfold model <app-icon name="external" [size]="13"></app-icon>
+                            </a>
                             <button class="link-btn" (click)="unlinkManyfold(product)">Unlink</button>
                         </ng-container>
                         <ng-template #noManyfoldLink>
-                            <button class="link-btn" [disabled]="!manyfoldSettings.base_url" (click)="openManyfoldPicker(product)">Link to Manyfold</button>
+                            <button class="link-btn" [disabled]="!manyfoldSettings.base_url" (click)="openManyfoldPicker(product)"
+                                    [title]="manyfoldSettings.base_url ? '' : 'Set up Manyfold under Integrations first'">Link to Manyfold</button>
                         </ng-template>
                     </div>
-                    <p *ngIf="product.description"><strong>Description:</strong> {{ product.description }}</p>
-                    <p *ngIf="product.category"><strong>Category:</strong> {{ product.category }}</p>
-                    <p><strong>Standard Filament:</strong> {{ product.standard_filament_amount }}g per unit</p>
-                    <p *ngIf="product.preferred_material"><strong>Material:</strong> {{ product.preferred_material }}</p>
-                    <p *ngIf="product.preferred_color"><strong>Color:</strong> {{ product.preferred_color }}</p>
-                    <p *ngIf="product.print_time_minutes"><strong>Print Time:</strong> {{ product.print_time_minutes }} minutes</p>
-                    <p *ngIf="product.nozzle_temp_c"><strong>Nozzle:</strong> {{ product.nozzle_temp_c }}°C</p>
-                    <p *ngIf="product.bed_temp_c"><strong>Bed:</strong> {{ product.bed_temp_c }}°C</p>
-                    <p *ngIf="product.print_speed_mms"><strong>Speed:</strong> {{ product.print_speed_mms }} mm/s</p>
-                    <p *ngIf="product.support_settings"><strong>Supports:</strong> {{ product.support_settings }}</p>
-                    <p *ngIf="product.infill_percent"><strong>Infill:</strong> {{ product.infill_percent }}%</p>
-                    <p *ngIf="product.layer_height_mm"><strong>Layer Height:</strong> {{ product.layer_height_mm }} mm</p>
-                    <p *ngIf="product.material_cost"><strong>Material Cost:</strong> ${{ product.material_cost }}</p>
-                    <p *ngIf="product.overhead_cost"><strong>Overhead:</strong> ${{ product.overhead_cost }}</p>
-                    <p *ngIf="product.labor_minutes"><strong>Labor:</strong> {{ product.labor_minutes }} min</p>
-                    <p *ngIf="product.target_margin_pct"><strong>Target Margin:</strong> {{ product.target_margin_pct }}%</p>
-                    <p *ngIf="product.suggested_price"><strong>Suggested Price:</strong> ${{ product.suggested_price }}</p>
-                    <p *ngIf="product.notes" class="product-notes"><strong>Notes:</strong> {{ product.notes }}</p>
                 </div>
             </div>
             <div *ngIf="productProfiles.length === 0" class="empty-state">
-                <p>No product templates yet. Click "Add Product" to create templates for automatic filament assignment.</p>
+                <app-icon name="products" [size]="32"></app-icon>
+                <p>No product templates yet. Use "Add product" to create templates for automatic filament assignment.</p>
             </div>
         </section>
 
@@ -332,9 +395,8 @@
 
         <!-- Integrations Section -->
         <section *ngIf="activeTab === 'integrations'" class="integrations-section">
-            <div class="section-header">
-                <h2>Manyfold</h2>
-            </div>
+            <div class="integration-card">
+            <h2>Manyfold</h2>
             <p class="picker-hint">Connect a self-hosted Manyfold instance to link product templates to their 3D model source. Create an OAuth application at <code>&lt;your-manyfold-url&gt;/oauth/applications</code> to get a client ID and secret.</p>
             <div class="manyfold-settings-form">
                 <div class="form-group">
@@ -353,8 +415,10 @@
                     {{ savingManyfoldSettings ? 'Saving...' : 'Save Manyfold Settings' }}
                 </button>
             </div>
+            </div>
         </section>
     </main>
+    </div>
 
     <app-manyfold-picker
         *ngIf="linkingProduct"

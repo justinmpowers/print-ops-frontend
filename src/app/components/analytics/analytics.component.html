@@ -1,6 +1,4 @@
 <div class="analytics-container">
-  <h1 class="analytics-title">Business Analytics</h1>
-
   <div *ngIf="loading" class="loading">
     <p>Loading analytics...</p>
   </div>
@@ -14,10 +12,8 @@
     
     <!-- Summary Cards -->
     <section class="summary-section">
-      <h2>Overview</h2>
       <div class="summary-grid">
         <div class="summary-card revenue">
-          <div class="card-icon">💰</div>
           <div class="card-content">
             <h3>Total Revenue</h3>
             <p class="card-value">{{ formatCurrency(summary.total_revenue) }}</p>
@@ -26,7 +22,6 @@
         </div>
 
         <div class="summary-card profit">
-          <div class="card-icon">📈</div>
           <div class="card-content">
             <h3>Total Profit</h3>
             <p class="card-value">{{ formatCurrency(summary.total_profit) }}</p>
@@ -35,7 +30,6 @@
         </div>
 
         <div class="summary-card cost">
-          <div class="card-icon">🧵</div>
           <div class="card-content">
             <h3>Material Cost</h3>
             <p class="card-value">{{ formatCurrency(summary.total_filament_cost) }}</p>
@@ -44,7 +38,6 @@
         </div>
 
         <div class="summary-card avg-order">
-          <div class="card-icon">🛒</div>
           <div class="card-content">
             <h3>Avg Order Value</h3>
             <p class="card-value">{{ formatCurrency(summary.avg_order_value) }}</p>
@@ -53,7 +46,6 @@
         </div>
 
         <div class="summary-card recent">
-          <div class="card-icon">📅</div>
           <div class="card-content">
             <h3>Last 30 Days</h3>
             <p class="card-value">{{ formatCurrency(summary.recent_revenue) }}</p>

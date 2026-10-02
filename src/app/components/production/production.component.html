@@ -1,13 +1,4 @@
 <div class="production-container">
-  <div class="production-header">
-    <h2>🖨️ Production Queue</h2>
-    <div class="header-actions">
-      <button class="btn-primary" (click)="loadProductionQueue()" [disabled]="loading">
-        {{ loading ? 'Loading...' : '🔄 Refresh' }}
-      </button>
-    </div>
-  </div>
-
   <div *ngIf="error" class="error-message">
     {{ error }}
   </div>
@@ -43,7 +34,10 @@
         Clear
       </button>
       <button class="btn-primary" (click)="openSessionModal()" [disabled]="selectedOrders.size === 0">
-        Create Print Session
+        Create print session
+      </button>
+      <button class="btn-secondary icon-only" (click)="loadProductionQueue()" [disabled]="loading" title="Refresh" aria-label="Refresh">
+        <app-icon name="refresh" [size]="16" [class.spin]="loading"></app-icon>
       </button>
     </div>
   </div>
@@ -51,19 +45,19 @@
   <!-- Summary Stats -->
   <div class="stats-bar">
     <div class="stat">
-      <span class="stat-label">Total Orders:</span>
+      <span class="stat-label">In queue</span>
       <span class="stat-value">{{ filteredOrders.length }}</span>
     </div>
     <div class="stat">
-      <span class="stat-label">Total Est. Time:</span>
+      <span class="stat-label">Est. print time</span>
       <span class="stat-value">{{ getTotalEstimatedTime() }}</span>
     </div>
     <div class="stat">
-      <span class="stat-label">Queued:</span>
+      <span class="stat-label">Queued</span>
       <span class="stat-value">{{ getStatusCount('QUEUED') }}</span>
     </div>
     <div class="stat">
-      <span class="stat-label">Printing:</span>
+      <span class="stat-label">Printing</span>
       <span class="stat-value">{{ getStatusCount('PRINTING') }}</span>
     </div>
   </div>
@@ -104,14 +98,14 @@
                   class="btn-icon" 
                   (click)="changePriority(order, -1)"
                   [disabled]="order.priority === 1"
-                  title="Increase Priority"
-                >⬆️</button>
+                  title="Increase priority" aria-label="Increase priority"
+                ><app-icon name="arrow-up" [size]="14"></app-icon></button>
                 <button 
                   class="btn-icon" 
                   (click)="changePriority(order, 1)"
                   [disabled]="order.priority === 5"
-                  title="Decrease Priority"
-                >⬇️</button>
+                  title="Decrease priority" aria-label="Decrease priority"
+                ><app-icon name="arrow-down" [size]="14"></app-icon></button>
               </div>
             </div>
           </td>
@@ -163,36 +157,34 @@
           </td>
           <td class="text-center">
             <span *ngIf="order.print_failures_count > 0" class="failure-badge">
-              ❌ {{ order.print_failures_count }}
+              {{ order.print_failures_count }} failed
             </span>
             <span *ngIf="order.print_failures_count === 0">-</span>
           </td>
           <td>
             <div class="action-buttons" *ngIf="editingOrderId !== order.id; else editingButtons">
-              <button class="btn-sm btn-primary" (click)="startEditing(order)" title="Edit">
-                ✏️
+              <button class="row-btn" (click)="startEditing(order)" title="Edit print time" aria-label="Edit print time">
+                <app-icon name="edit" [size]="15"></app-icon>
               </button>
               <button 
                 *ngIf="order.production_status === 'QUEUED'" 
-                class="btn-sm btn-success" 
+                class="row-btn primary"
                 (click)="updateStatus(order, 'PRINTING')"
-                title="Start Printing"
               >
-                ▶️
+                <app-icon name="play" [size]="13"></app-icon> Start
               </button>
               <button 
                 *ngIf="order.production_status === 'PRINTING'" 
-                class="btn-sm btn-success" 
+                class="row-btn success"
                 (click)="updateStatus(order, 'PRINTED')"
-                title="Mark Printed"
               >
-                ✅
+                <app-icon name="check" [size]="14"></app-icon> Done
               </button>
             </div>
             <ng-template #editingButtons>
               <div class="action-buttons">
-                <button class="btn-sm btn-success" (click)="saveEdits(order)">💾</button>
-                <button class="btn-sm btn-secondary" (click)="cancelEditing()">❌</button>
+                <button class="row-btn success" (click)="saveEdits(order)">Save</button>
+                <button class="row-btn" (click)="cancelEditing()">Cancel</button>
               </div>
             </ng-template>
           </td>
