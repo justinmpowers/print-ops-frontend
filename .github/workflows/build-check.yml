@@ -1,0 +1,29 @@
+name: Build check
+
+# The Docker image is only built after a merge to main. This runs the same install and
+# production build on every pull request, so a change that breaks the build (for example a
+# dependency bump) fails before it is merged rather than after.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22   # matches the Dockerfile builder image
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build
+        run: npm run build -- --configuration production
