@@ -14,6 +14,7 @@ import { ProductionComponent } from 'components/production/production.component'
 import { PrinterManagementComponent } from 'components/printer-management/printer-management.component';
 import { ManyfoldPickerComponent } from 'components/manyfold-picker/manyfold-picker.component';
 import { IconComponent, IconName } from 'components/icon/icon.component';
+import { DevicesPanelComponent } from 'components/devices-panel/devices-panel.component';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'environments/environment';
 
@@ -22,7 +23,7 @@ type DashboardTab = 'orders' | 'filaments' | 'analytics' | 'products' | 'product
 @Component({
     selector: 'app-dashboard',
     standalone: true,
-    imports: [CommonModule, FormsModule, AnalyticsComponent, ProductionComponent, PrinterManagementComponent, ManyfoldPickerComponent, IconComponent],
+    imports: [CommonModule, FormsModule, AnalyticsComponent, ProductionComponent, PrinterManagementComponent, ManyfoldPickerComponent, IconComponent, DevicesPanelComponent],
     templateUrl: './dashboard.component.html',
     styleUrls: ['./dashboard.component.scss'],
 })
