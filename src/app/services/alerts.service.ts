@@ -11,9 +11,10 @@ export interface AlertSettings {
   discord_webhook_url?: string | null;
   email_enabled?: boolean;
   email_to?: string | null;
-  telegram_bot_token?: string | null;
-  telegram_chat_id?: string | null;
-  telegram_enabled?: boolean;
+  ntfy_server?: string | null;
+  ntfy_topic?: string | null;
+  ntfy_token?: string | null;
+  ntfy_enabled?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
 }

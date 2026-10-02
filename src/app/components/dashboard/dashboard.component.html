@@ -557,19 +557,25 @@
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0">
 
             <div class="form-group">
-                <label>Telegram Bot Token</label>
-                <input type="password" [(ngModel)]="alertSettings.telegram_bot_token" name="telegram_bot_token"
-                       placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
-                <small>Create a bot via @BotFather on Telegram, then paste the token here.</small>
+                <label>ntfy Topic</label>
+                <input type="text" [(ngModel)]="alertSettings.ntfy_topic" name="ntfy_topic"
+                       pattern="[A-Za-z0-9_-]{1,64}" placeholder="shop-alerts-x7Kq2">
+                <small>Subscribe to this topic in the ntfy app. On a public server, anyone who knows the topic can read it, so make it long and random.</small>
             </div>
             <div class="form-group">
-                <label>Telegram Chat ID</label>
-                <input type="text" [(ngModel)]="alertSettings.telegram_chat_id" name="telegram_chat_id"
-                       placeholder="-1001234567890 or your user ID">
-                <small>Get your chat ID by messaging @userinfobot or @getidsbot on Telegram.</small>
+                <label>ntfy Server</label>
+                <input type="url" [(ngModel)]="alertSettings.ntfy_server" name="ntfy_server"
+                       placeholder="https://ntfy.sh">
+                <small>Leave blank to use https://ntfy.sh, or enter your self-hosted server.</small>
             </div>
-            <div *ngIf="alertSettings.telegram_enabled" class="form-group">
-                <span style="color:#10b981;font-weight:600">✓ Telegram configured</span>
+            <div class="form-group">
+                <label>ntfy Access Token</label>
+                <input type="password" [(ngModel)]="alertSettings.ntfy_token" name="ntfy_token"
+                       placeholder="tk_…" autocomplete="off">
+                <small>Only needed if your ntfy server requires authentication.</small>
+            </div>
+            <div *ngIf="alertSettings.ntfy_enabled" class="form-group">
+                <span style="color:#10b981;font-weight:600">✓ ntfy configured</span>
             </div>
 
             <div class="form-actions">
