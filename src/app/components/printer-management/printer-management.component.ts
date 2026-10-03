@@ -79,6 +79,11 @@ export class PrinterManagementComponent implements OnInit, OnDestroy {
 
   startStatusPolling(): void {
     this.stopStatusPolling();
+    if (this.selectedPrinter?.live_status) {
+      // A device (PrintHub) keeps this printer's status current; just re-read it.
+      this.statusPollInterval = setInterval(() => this.loadPrinters(), 15000);
+      return;
+    }
     if (!this.selectedPrinter?.connection_id) return;
     this.refreshStatus();
     this.statusPollInterval = setInterval(() => this.refreshStatus(), 30000);
@@ -250,6 +255,54 @@ export class PrinterManagementComponent implements OnInit, OnDestroy {
   clearMessages(): void {
     this.error = null;
     this.successMessage = null;
+  }
+
+  /** A device-reported status older than this is shown as stale. */
+  private static readonly LIVE_STALE_SECONDS = 180;
+
+  isLiveStale(printer: Printer): boolean {
+    const age = printer.live_status?.age_seconds;
+    return age == null || age > PrinterManagementComponent.LIVE_STALE_SECONDS;
+  }
+
+  liveStateLabel(state: string | null | undefined): string {
+    const labels: Record<string, string> = {
+      printing: 'Printing', paused: 'Paused', finished: 'Finished', failed: 'Failed',
+      error: 'Error', idle: 'Idle', offline: 'Offline',
+    };
+    return labels[state || ''] || 'Unknown';
+  }
+
+  /** Short status line for the printer list. */
+  liveSummary(printer: Printer): string {
+    const live = printer.live_status;
+    if (!live) return this.getConnectionLabel(printer.connection_type);
+    if (this.isLiveStale(printer)) return 'No recent update';
+    const label = this.liveStateLabel(live.state);
+    return (live.state === 'printing' || live.state === 'paused') && live.progress != null
+      ? `${label} · ${Math.round(live.progress)}%` : label;
+  }
+
+  liveDotClass(printer: Printer): string {
+    const live = printer.live_status;
+    if (!live) return this.getStatusDotClass(printer.connection_status);
+    if (this.isLiveStale(printer) || live.state === 'offline') return 'dot-gray';
+    if (live.state === 'error' || live.state === 'failed') return 'dot-red';
+    if (live.state === 'paused') return 'dot-yellow';
+    return 'dot-green';
+  }
+
+  formatAge(seconds: number | null | undefined): string {
+    if (seconds == null) return 'unknown';
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
+    return `${Math.round(seconds / 3600)}h ago`;
+  }
+
+  formatMinutes(minutes: number | null | undefined): string {
+    if (minutes == null) return '–';
+    const h = Math.floor(minutes / 60), m = minutes % 60;
+    return h ? `${h}h ${m}m` : `${m}m`;
   }
 
   getConnectionLabel(type: string | undefined): string {
