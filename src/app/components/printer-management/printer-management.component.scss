@@ -547,3 +547,69 @@
   .pm-layout { grid-template-columns: 1fr; }
   .pm-list { max-height: none; }
 }
+
+/* ===== Status pushed by a device (PrintHub) ===== */
+.live-source {
+  margin: -4px 0 12px;
+  font-size: 0.8rem;
+  color: #047857;
+  &.stale { color: #b45309; }
+}
+.live-job {
+  margin-top: 12px;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  strong { color: var(--text); }
+}
+
+/* ===== Detail layout: header, status, then links, stacked =====
+   .pm-info was a grid of auto-fit columns, which put the header, status panel and quick links side by
+   side; the markup also uses .label/.value while the styles above target .cell-label/.cell-value. */
+.pm-detail .pm-info {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+.pm-info-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  h3 { margin: 0 0 6px; font-size: 1.25rem; }
+}
+.pm-info-actions { display: flex; gap: 8px; }
+.status-panel { margin: 0; }
+.status-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  h4 { margin: 0; }
+}
+.status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  .label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+  .value { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+  .state-printing { color: var(--info); }
+  .state-finished, .state-idle { color: var(--success); }
+  .state-paused { color: #b45309; }
+  .state-failed, .state-error { color: var(--danger); }
+  .state-offline { color: var(--text-light); }
+}
+.quick-nav {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  button { flex: 0 0 auto; height: auto; }
+}

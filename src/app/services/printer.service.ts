@@ -20,6 +20,8 @@ export interface Printer {
   status?: string;
   current_job?: string;
   utilization_pct?: number;
+  // Latest state pushed by a device on the printers' network (PrintHub), if any.
+  live_status?: PrinterLiveStatus | null;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +78,19 @@ export interface ScheduledPrint {
   notes?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface PrinterLiveStatus {
+  source: string | null;          // device that reported it
+  state: string | null;           // offline, idle, printing, paused, finished, failed, error
+  job_name: string | null;
+  progress: number | null;        // 0-100
+  remaining_minutes: number | null;
+  nozzle_temp: number | null;
+  bed_temp: number | null;
+  message: string | null;
+  reported_at: string | null;
+  age_seconds: number | null;     // at the time the API answered
 }
 
 export interface PrinterStatus {

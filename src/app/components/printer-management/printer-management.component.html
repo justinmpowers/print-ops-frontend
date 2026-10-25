@@ -28,10 +28,10 @@
            [class.active]="selectedPrinter?.id === printer.id"
            (click)="selectPrinter(printer)">
         <div class="printer-item-main">
-          <span class="status-dot" [class]="getStatusDotClass(printer.connection_status)"></span>
+          <span class="status-dot" [class]="liveDotClass(printer)"></span>
           <div class="printer-item-info">
             <strong>{{ printer.name }}</strong>
-            <span class="conn-label">{{ getConnectionLabel(printer.connection_type) }}</span>
+            <span class="conn-label">{{ liveSummary(printer) }}</span>
           </div>
         </div>
       </div>
@@ -132,6 +132,43 @@
         </div>
 
         <!-- Live Status Panel -->
+        <!-- Status pushed by PrintHub (or another device) -->
+        <div class="status-panel" *ngIf="selectedPrinter.live_status as live; else directStatus">
+          <div class="status-panel-header">
+            <h4>Live Status</h4>
+            <button class="btn btn-secondary btn-sm" (click)="loadPrinters()">↻ Refresh</button>
+          </div>
+          <div class="live-source" [class.stale]="isLiveStale(selectedPrinter)">
+            Live via {{ live.source || 'device' }} · updated {{ formatAge(live.age_seconds) }}
+            <span *ngIf="isLiveStale(selectedPrinter)"> — no recent update, the device may be offline</span>
+          </div>
+          <div class="status-grid">
+            <div class="status-cell">
+              <span class="label">State</span>
+              <span class="value state-{{ (live.state || 'unknown').toLowerCase() }}">{{ liveStateLabel(live.state) }}</span>
+            </div>
+            <div class="status-cell" *ngIf="live.progress != null && live.state !== 'idle' && live.state !== 'offline'">
+              <span class="label">Progress</span>
+              <span class="value">{{ live.progress | number: '1.0-0' }}%</span>
+            </div>
+            <div class="status-cell" *ngIf="live.remaining_minutes != null && (live.state === 'printing' || live.state === 'paused')">
+              <span class="label">Time left</span>
+              <span class="value">{{ formatMinutes(live.remaining_minutes) }}</span>
+            </div>
+            <div class="status-cell" *ngIf="live.nozzle_temp != null">
+              <span class="label">Nozzle</span>
+              <span class="value">{{ live.nozzle_temp | number: '1.0-0' }}°C</span>
+            </div>
+            <div class="status-cell" *ngIf="live.bed_temp != null">
+              <span class="label">Bed</span>
+              <span class="value">{{ live.bed_temp | number: '1.0-0' }}°C</span>
+            </div>
+          </div>
+          <div class="live-job" *ngIf="live.job_name">Job: <strong>{{ live.job_name }}</strong></div>
+          <div class="status-error" *ngIf="live.message">{{ live.message }}</div>
+        </div>
+
+        <ng-template #directStatus>
         <div class="status-panel">
           <div class="status-panel-header">
             <h4>Live Status</h4>
@@ -179,6 +216,7 @@
             (Settings → Network → LAN Only), and that this server can reach the printer's IP.
           </div>
         </div>
+        </ng-template>
 
         <!-- Quick Nav -->
         <div class="quick-nav">
