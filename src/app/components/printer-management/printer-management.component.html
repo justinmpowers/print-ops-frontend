@@ -56,7 +56,8 @@
               <option value="bambu_cloud">Bambu Cloud</option>
               <option value="bambu_lan">Bambu LAN</option>
               <option value="octoprint">OctoPrint</option>
-              <option value="klipper">Klipper / Moonraker</option>
+              <option value="klipper">Klipper / Moonraker (Snapmaker U1)</option>
+              <option value="ankermake">AnkerMake (via PrintHub)</option>
             </select>
           </div>
 
@@ -95,8 +96,30 @@
             </div>
           </ng-container>
 
-          <!-- OctoPrint / Klipper -->
-          <ng-container *ngIf="newPrinter.connection_type === 'octoprint' || newPrinter.connection_type === 'klipper'">
+          <!-- Klipper / Moonraker (Snapmaker U1 and others) -->
+          <ng-container *ngIf="newPrinter.connection_type === 'klipper' || newPrinter.connection_type === 'moonraker'">
+            <div class="field">
+              <label>Moonraker URL *</label>
+              <input type="text" [(ngModel)]="newPrinter.api_url" name="api_url"
+                     placeholder="http://192.168.1.100:7125">
+              <small>The printer's IP on port 7125. Check it by opening http://&lt;ip&gt;:7125/server/info.</small>
+            </div>
+            <div class="field">
+              <label>API Key</label>
+              <input type="password" [(ngModel)]="formApiKey" name="api_key"
+                     placeholder="Only if Moonraker authorization is on">
+            </div>
+          </ng-container>
+
+          <!-- AnkerMake -->
+          <div *ngIf="newPrinter.connection_type === 'ankermake'" class="info-note">
+            The AnkerMake M5 only reports to Anker's cloud, so PrintOps gets its status from PrintHub
+            (through ankerctl). No address is needed here. Add the printer to PrintHub's config under
+            <code>ankermake:</code> with exactly this name.
+          </div>
+
+          <!-- OctoPrint -->
+          <ng-container *ngIf="newPrinter.connection_type === 'octoprint'">
             <div class="field">
               <label>API URL *</label>
               <input type="text" [(ngModel)]="newPrinter.api_url" name="api_url"
@@ -208,6 +231,11 @@
               <span class="label">Layers</span>
               <span class="value">{{ liveStatus.layers_printed }} / {{ liveStatus.total_layers }}</span>
             </div>
+          </div>
+
+          <div *ngIf="selectedPrinter.connection_type === 'ankermake'" class="info-note">
+            Status for AnkerMake printers comes from PrintHub. Make sure this printer is in PrintHub's
+            config under <code>ankermake:</code> with the name "{{ selectedPrinter.name }}".
           </div>
 
           <!-- Bambu LAN note -->

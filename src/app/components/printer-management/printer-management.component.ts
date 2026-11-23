@@ -37,7 +37,7 @@ export class PrinterManagementComponent implements OnInit, OnDestroy {
   formAccessCode = '';
 
   printerTypes = ['octoprint', 'klipper', 'bambu'];
-  connectionTypes = ['octoprint', 'klipper', 'bambu_cloud', 'bambu_lan'];
+  connectionTypes = ['octoprint', 'klipper', 'bambu_cloud', 'bambu_lan', 'ankermake'];
 
   constructor(private printerService: PrinterService, private cdr: ChangeDetectorRef) {}
 
@@ -311,6 +311,8 @@ export class PrinterManagementComponent implements OnInit, OnDestroy {
       bambu_lan: 'Bambu LAN',
       octoprint: 'OctoPrint',
       klipper: 'Klipper / Moonraker',
+      moonraker: 'Klipper / Moonraker',
+      ankermake: 'AnkerMake (via PrintHub)',
     };
     return labels[type || ''] || type || 'Unknown';
   }
