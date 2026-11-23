@@ -13,7 +13,7 @@ export interface Printer {
   notes?: string;
   // Connection fields (populated from PrinterConnection via backend)
   connection_id?: number;
-  connection_type?: string; // 'octoprint' | 'klipper' | 'bambu_cloud' | 'bambu_lan'
+  connection_type?: string; // 'octoprint' | 'klipper' | 'moonraker' | 'bambu_cloud' | 'bambu_lan' | 'ankermake'
   connection_status?: string; // 'connected' | 'disconnected' | 'error'
   api_url?: string;
   serial_number?: string;
@@ -103,6 +103,8 @@ export interface PrinterStatus {
   nozzle_temp?: number;
   bed_temp?: number;
   chamber_temp?: number;
+  job_name?: string;
+  active_tool?: string;     // Klipper toolhead in use, e.g. "extruder2" on a Snapmaker U1
   errors?: string;
   last_updated: string;
 }
@@ -157,9 +159,11 @@ export class PrinterService {
   }
 
   getPrinterStatus(connectionId: number): Observable<PrinterStatus> {
-    return this.http.get<PrinterStatus>(`${this.apiUrl}/printer-connections/${connectionId}/status`, {
-      headers: this.getHeaders()
-    });
+    // The API wraps the fields as {status: {...}, connection_status}; Bambu reports `progress`
+    // where Moonraker/AnkerMake report `progress_percent`.
+    return this.http.get<{ status: PrinterStatus & { progress?: number }; connection_status: string }>(
+      `${this.apiUrl}/printer-connections/${connectionId}/status`, { headers: this.getHeaders() }
+    ).pipe(map(r => ({ ...r.status, progress_percent: r.status?.progress_percent ?? r.status?.progress })));
   }
 
   // Bambu Materials
