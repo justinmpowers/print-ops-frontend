@@ -50,7 +50,7 @@ export class NotificationSettingsComponent implements OnInit {
         this.printer = printer;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Failed to load printer';
       }
     });
@@ -73,7 +73,7 @@ export class NotificationSettingsComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Failed to load notification settings';
         this.loading = false;
       }

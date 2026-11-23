@@ -45,7 +45,7 @@ export class PrintQueueComponent implements OnInit {
         this.printer = printer;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Failed to load printer';
       }
     });
@@ -60,7 +60,7 @@ export class PrintQueueComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Failed to load prints';
         this.loading = false;
       }
@@ -73,7 +73,7 @@ export class PrintQueueComponent implements OnInit {
         this.queuePrints = prints;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         // Error handled silently
       }
     });
@@ -114,7 +114,7 @@ export class PrintQueueComponent implements OnInit {
           this.successMessage = 'Print marked as failed';
           this.cdr.detectChanges();
         },
-        error: (err) => {
+        error: () => {
           this.error = 'Failed to update print status';
         }
       });

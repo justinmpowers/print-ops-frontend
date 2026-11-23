@@ -5,6 +5,9 @@ import { tap, catchError, map } from 'rxjs/operators';
 import { User } from '../models/types';
 import { environment } from 'environments/environment';
 
+/** Host of Etsy's OAuth page (the backend builds https://www.etsy.com/oauth/connect?...). */
+const ETSY_OAUTH_HOST = 'www.etsy.com';
+
 /**
  * Service for managing user authentication with Etsy OAuth.
  * Handles login, access/refresh token management, and user information retrieval.
@@ -31,6 +34,25 @@ export class AuthService {
 
   getLoginUrl(): Observable<{ auth_url: string; code_verifier: string }> {
     return this.http.get<{ auth_url: string; code_verifier: string }>(`${this.apiUrl}/auth/login`);
+  }
+
+  /**
+   * Send the browser to Etsy's OAuth page. Only Etsy's own https URL is accepted, so a bad or
+   * tampered login response can't redirect the user (and their PKCE verifier) somewhere else.
+   * Returns false, without navigating, if the response isn't a usable Etsy login URL.
+   */
+  startEtsyLogin(response: { auth_url?: string; code_verifier?: string }): boolean {
+    if (!response?.auth_url || !response.code_verifier) return false;
+    let url: URL;
+    try {
+      url = new URL(response.auth_url);
+    } catch {
+      return false;
+    }
+    if (url.protocol !== 'https:' || url.hostname !== ETSY_OAUTH_HOST) return false;
+    sessionStorage.setItem('oauth_code_verifier', response.code_verifier);
+    window.location.assign(url.href);
+    return true;
   }
 
   handleCallback(code: string, code_verifier: string): Observable<{ token: string; user: User }> {
