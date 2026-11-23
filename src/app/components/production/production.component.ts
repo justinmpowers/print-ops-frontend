@@ -51,7 +51,7 @@ export class ProductionComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Failed to load production queue';
         this.loading = false;
       }
@@ -64,7 +64,7 @@ export class ProductionComponent implements OnInit {
         this.sessions = response.sessions;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         // Error handled silently
       }
     });
@@ -120,7 +120,7 @@ export class ProductionComponent implements OnInit {
         }
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         alert('Failed to update status');
       }
     });
@@ -138,7 +138,7 @@ export class ProductionComponent implements OnInit {
           this.loadProductionQueue();
           this.cdr.detectChanges();
         },
-        error: (err) => {
+        error: () => {
           alert('Failed to update priority');
         }
       });

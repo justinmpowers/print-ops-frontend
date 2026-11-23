@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { AuthService } from 'services/auth.service';
 import { environment } from 'environments/environment';
 
 export interface Printer {
@@ -120,14 +119,12 @@ export interface PrinterStatus {
 export class PrinterService {
   private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
+  constructor(private http: HttpClient) {}
 
+  // The auth interceptor adds the Authorization header (and refreshes an expired token).
+  // Setting it here too sent "Bearer null" when logged out and a stale token after a refresh.
   private getHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    });
+    return new HttpHeaders({ 'Content-Type': 'application/json' });
   }
 
   // Printer Management

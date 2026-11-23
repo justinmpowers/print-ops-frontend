@@ -53,7 +53,7 @@ export class MaterialTrackerComponent implements OnInit {
         this.printer = printer;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Failed to load printer';
       }
     });
@@ -67,7 +67,7 @@ export class MaterialTrackerComponent implements OnInit {
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Failed to load materials';
         this.loading = false;
       }

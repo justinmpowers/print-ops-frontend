@@ -179,8 +179,7 @@ export class DashboardComponent implements OnInit {
         const name = this.linkShopInput.trim();
         if (!name) return;
         this.linkShopError = '';
-        const headers = { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}`, 'Content-Type': 'application/json' };
-        this.http.post<{ shop_id: number; shop_name: string }>(`${environment.apiUrl}/auth/link-shop`, { shop_name: name }, { headers }).subscribe({
+        this.http.post<{ shop_id: number; shop_name: string }>(`${environment.apiUrl}/auth/link-shop`, { shop_name: name }).subscribe({
             next: (r) => {
                 this.shopId = r.shop_id;
                 this.shopName = r.shop_name;
@@ -198,7 +197,7 @@ export class DashboardComponent implements OnInit {
         if (!this.autoSyncComplete && !this.syncingOrders) {
             this.syncingOrders = true;
             this.orderService.syncOrders().subscribe({
-                next: (response) => {
+                next: () => {
                     this.syncingOrders = false;
                     this.autoSyncComplete = true;
                     this.loadOrders();
@@ -432,7 +431,7 @@ export class DashboardComponent implements OnInit {
     syncOrders(): void {
         this.syncingOrders = true;
         this.orderService.syncOrders().subscribe({
-            next: (response) => {
+            next: () => {
                 this.syncingOrders = false;
                 this.loadOrders();
                 alert('Orders synced successfully!');
@@ -474,10 +473,7 @@ export class DashboardComponent implements OnInit {
 
     reconnectEtsy(): void {
         this.authService.getLoginUrl().subscribe(response => {
-            if (response.auth_url && response.code_verifier) {
-                sessionStorage.setItem('oauth_code_verifier', response.code_verifier);
-                window.location.href = response.auth_url;
-            }
+            this.authService.startEtsyLogin(response);
         });
     }
 

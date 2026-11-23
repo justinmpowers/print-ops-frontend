@@ -86,7 +86,7 @@ export class OAuthCallbackComponent implements OnInit {
               this.router.navigate(['/dashboard']);
             }, 1000);
           },
-          (error) => {
+          () => {
             this.message = 'Login failed. Redirecting...';
             setTimeout(() => {
               this.router.navigate(['/login']);

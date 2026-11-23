@@ -10,6 +10,4 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor]))
   ]
-}).catch(err => {
-  // Silent error handling for platform initialization
-});
+}).catch(err => console.error('PrintOps failed to start', err));
