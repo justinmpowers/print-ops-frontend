@@ -1,0 +1,51 @@
+# Weekly pull requests that keep dependencies current. Security fixes don't wait for this schedule:
+# Dependabot security updates (on in the repository settings) open those as soon as an advisory lands.
+# Not covered: the scanner images pinned by digest in workflows/security-scan.yml; bump those by hand.
+# cooldown: wait 7 days before proposing a newly published version, so a compromised release is
+# usually caught and pulled first (as with Trivy in March 2026). Security updates skip the wait.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*"]
+        update-types: [minor, patch]
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # New Angular majors go through `ng update`, which also migrates code; a plain bump would break.
+      - dependency-name: "@angular/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@angular-devkit/*"
+        update-types: ["version-update:semver-major"]
+      # Angular pins the TypeScript versions it supports, so TypeScript moves with Angular.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
+  # The Dockerfile's node build stage (nginx:alpine has no version to follow).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    ignore:
+      # Stay on Node LTS lines; move to the next even-numbered LTS by hand (with Angular's support).
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
+  # Actions are pinned to commit SHAs; Dependabot updates the SHA and its version comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
