@@ -1,0 +1,48 @@
+<div class="controls">
+    <a routerLink="/dashboard" class="back"><app-icon name="arrow-left" [size]="16"></app-icon> PrintOps</a>
+    <h1>Spool labels</h1>
+
+    <label>
+        Label size
+        <select [(ngModel)]="sizeId" (ngModelChange)="onSettingsChange()">
+            <option *ngFor="let s of sizes" [value]="s.id">{{ s.name }}</option>
+        </select>
+    </label>
+    <label>
+        Printing on
+        <select [(ngModel)]="layout" (ngModelChange)="onSettingsChange()">
+            <option value="sheet">Paper or sticker sheet (many per page)</option>
+            <option value="roll">Label printer (one per label)</option>
+        </select>
+    </label>
+    <button class="btn btn-primary" (click)="print()" [disabled]="!labels.length">
+        Print {{ labels.length }} {{ labels.length === 1 ? 'label' : 'labels' }}
+    </button>
+
+    <p class="tip">
+        Each code opens that spool in PrintOps when scanned with a phone camera.
+        <ng-container *ngIf="layout === 'roll'">In the print dialog, pick your label printer and set scale to 100% (no "fit to page").</ng-container>
+        <ng-container *ngIf="layout === 'sheet'">Cut along the light outlines, or print onto a sticker sheet.</ng-container>
+    </p>
+</div>
+
+<p class="state" *ngIf="loading">Loading spools…</p>
+<p class="state" *ngIf="error">{{ error }}</p>
+<p class="state" *ngIf="!loading && !error && !labels.length">No spools to label yet. Add one on the Filament page first.</p>
+
+<div class="sheet" [class.roll]="layout === 'roll'">
+    <div class="label" *ngFor="let l of labels"
+         [style.width]="size.widthMm + 'mm'" [style.height]="size.heightMm + 'mm'">
+        <svg class="qr" [attr.viewBox]="(-quietZone) + ' ' + (-quietZone) + ' ' + (l.qr.size + quietZone * 2) + ' ' + (l.qr.size + quietZone * 2)"
+             shape-rendering="crispEdges" role="img" [attr.aria-label]="'QR code for ' + l.url">
+            <rect [attr.x]="-quietZone" [attr.y]="-quietZone" [attr.width]="l.qr.size + quietZone * 2"
+                  [attr.height]="l.qr.size + quietZone * 2" fill="#fff" />
+            <path [attr.d]="l.qr.path" fill="#000" />
+        </svg>
+        <div class="text">
+            <span class="code">{{ l.spool.code }}</span>
+            <span class="color">{{ l.spool.color }}</span>
+            <span class="material">{{ l.spool.material }}<ng-container *ngIf="l.spool.brand"> · {{ l.spool.brand }}</ng-container></span>
+        </div>
+    </div>
+</div>

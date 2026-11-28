@@ -22,9 +22,10 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Idle-based auto-logout only matters while a session exists.
+    // Idle-based auto-logout only matters while a session exists, and is skipped for
+    // sessions started with "Keep me signed in".
     this.authService.token$.subscribe(token => {
-      if (token) {
+      if (token && !this.authService.isKeepSignedIn()) {
         this.idleService.start();
       } else {
         this.idleService.stop();

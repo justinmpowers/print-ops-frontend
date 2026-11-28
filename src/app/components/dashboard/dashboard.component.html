@@ -79,7 +79,13 @@
         <section *ngIf="activeTab === 'orders'" class="orders-section">
             <div class="toolbar">
                 <div class="toolbar-left">
-                    <ng-container *ngIf="selectedOrders.size > 0; else noSelection">
+                    <div class="view-toggle" role="group" aria-label="Orders view">
+                        <button [class.active]="ordersView === 'board'" [attr.aria-pressed]="ordersView === 'board'"
+                                (click)="setOrdersView('board')">Board</button>
+                        <button [class.active]="ordersView === 'list'" [attr.aria-pressed]="ordersView === 'list'"
+                                (click)="setOrdersView('list')">List</button>
+                    </div>
+                    <ng-container *ngIf="ordersView === 'list' && selectedOrders.size > 0; else noSelection">
                         <span class="selection-count">{{ selectedOrders.size }} selected</span>
                         <button class="btn btn-secondary btn-sm" (click)="bulkMarkShipped()">Mark shipped</button>
                         <button class="btn btn-secondary btn-sm" (click)="bulkAssignFilament()">Assign filament</button>
@@ -87,7 +93,7 @@
                     </ng-container>
                     <ng-template #noSelection>
                         <span class="muted-count">{{ orders.length }} {{ orders.length === 1 ? 'order' : 'orders' }}</span>
-                        <button class="btn btn-ghost btn-sm" *ngIf="orders.length > 0" (click)="selectAllOrders()">Select all</button>
+                        <button class="btn btn-ghost btn-sm" *ngIf="ordersView === 'list' && orders.length > 0" (click)="selectAllOrders()">Select all</button>
                     </ng-template>
                 </div>
                 <div class="toolbar-right">
@@ -122,8 +128,16 @@
                 </div>
             </div>
 
-            <div *ngIf="orders.length > 0" class="order-list">
-                <article class="order" *ngFor="let order of orders" [class.selected]="selectedOrders.has(order.id)"
+            <div *ngIf="etsyNeedsReconnect" class="alert alert-warning">
+                <span>Your Etsy connection has expired, so new orders can't sync. Reconnecting keeps you signed in here.</span>
+                <button class="btn btn-secondary btn-sm" (click)="reconnectEtsy()">Reconnect Etsy</button>
+            </div>
+
+            <app-order-board *ngIf="ordersView === 'board' && orders.length > 0" [orders]="orders"
+                             (changed)="loadOrders()"></app-order-board>
+
+            <div *ngIf="ordersView === 'list' && orders.length > 0" class="order-list">
+                <article class="order" *ngFor="let order of orders; trackBy: trackOrderById" [class.selected]="selectedOrders.has(order.id)"
                          [class.open]="expandedOrders.has(order.id)">
                     <div class="order-row" (click)="toggleOrderDetails(order)">
                         <input type="checkbox" [checked]="selectedOrders.has(order.id)" (click)="$event.stopPropagation()"
@@ -157,77 +171,7 @@
                     </div>
 
                     <div class="order-details" *ngIf="expandedOrders.has(order.id)">
-                        <div class="detail-panel">
-                            <h4>Items</h4>
-                            <ul class="item-list">
-                                <li *ngFor="let item of order.items">
-                                    <span>{{ item.title }}</span><span class="qty">× {{ item.quantity }}</span>
-                                </li>
-                            </ul>
-                            <p class="detail-line" *ngIf="order.total_filament_used > 0">
-                                Filament used <strong>{{ order.total_filament_used }}g</strong>
-                            </p>
-                            <button class="btn btn-secondary btn-sm" (click)="editOrderFilament(order)">Manual filament assignment</button>
-                        </div>
-
-                        <div class="detail-panel">
-                            <h4>Internal notes</h4>
-                            <div class="note-list" *ngIf="notesCache[order.id]?.length">
-                                <div class="note-item" *ngFor="let note of notesCache[order.id]">
-                                    <span class="note-date">{{ formatDate(note.created_at) }}</span>
-                                    <p>{{ note.content }}</p>
-                                </div>
-                            </div>
-                            <textarea rows="2" placeholder="Add a note" [(ngModel)]="noteDrafts[order.id]"></textarea>
-                            <button class="btn btn-primary btn-sm" (click)="saveNote(order)">Save note</button>
-                        </div>
-
-                        <div class="detail-panel">
-                            <h4>Customer log</h4>
-                            <div class="comm-list" *ngIf="commCache[order.id]?.length">
-                                <div class="comm-item" *ngFor="let log of commCache[order.id]">
-                                    <span class="comm-date">{{ formatDate(log.created_at) }}</span>
-                                    <span class="comm-chip">{{ log.direction }}</span>
-                                    <span class="comm-chip">{{ log.channel }}</span>
-                                    <p>{{ log.message }}</p>
-                                </div>
-                            </div>
-                            <textarea rows="2" placeholder="Log a message" [(ngModel)]="commDrafts[order.id].message"></textarea>
-                            <div class="comm-meta">
-                                <select [(ngModel)]="commDrafts[order.id].direction" aria-label="Direction">
-                                    <option value="outbound">Outbound</option>
-                                    <option value="inbound">Inbound</option>
-                                </select>
-                                <select [(ngModel)]="commDrafts[order.id].channel" aria-label="Channel">
-                                    <option value="message">Message</option>
-                                    <option value="email">Email</option>
-                                    <option value="phone">Phone</option>
-                                    <option value="other">Other</option>
-                                </select>
-                                <button class="btn btn-primary btn-sm" (click)="saveCommunication(order)">Log</button>
-                            </div>
-                        </div>
-
-                        <div class="detail-panel">
-                            <h4>Shipping</h4>
-                            <div *ngIf="order.tracking_number; else noTracking">
-                                <p class="detail-line">Tracking <strong class="mono">{{ order.tracking_number }}</strong></p>
-                                <p class="detail-line" *ngIf="order.shipping_provider">Provider <strong>{{ order.shipping_provider }}</strong></p>
-                                <p class="detail-line" *ngIf="order.shipping_label_status">Label <strong>{{ order.shipping_label_status }}</strong></p>
-                            </div>
-                            <ng-template #noTracking>
-                                <p class="muted">Tracking is managed in Etsy.</p>
-                            </ng-template>
-
-                            <h4 class="spaced">Finished photo</h4>
-                            <div *ngIf="order.photo_url" class="photo-preview">
-                                <img [src]="order.photo_url" alt="Finished order photo">
-                            </div>
-                            <div class="photo-upload">
-                                <input type="file" accept="image/*" (change)="onPhotoSelected($event, order)" aria-label="Choose photo">
-                                <button class="btn btn-secondary btn-sm" (click)="uploadPhoto(order)">Upload</button>
-                            </div>
-                        </div>
+                        <app-order-details [order]="order" (changed)="loadOrders()"></app-order-details>
                     </div>
                 </article>
             </div>
@@ -242,8 +186,16 @@
             <div class="toolbar">
                 <div class="toolbar-left">
                     <span class="muted-count">{{ filaments.length }} {{ filaments.length === 1 ? 'spool' : 'spools' }}</span>
+                    <form class="spool-scan" (ngSubmit)="openScannedSpool()">
+                        <app-icon name="qr" [size]="15"></app-icon>
+                        <input type="text" name="spoolScan" [(ngModel)]="spoolScanDraft" placeholder="Scan or type a spool code"
+                               aria-label="Scan or type a spool code" autocomplete="off">
+                    </form>
                 </div>
                 <div class="toolbar-right">
+                    <a class="btn btn-secondary btn-sm" routerLink="/labels" *ngIf="filaments.length > 0">
+                        <app-icon name="qr" [size]="15"></app-icon> Print labels
+                    </a>
                     <button class="btn btn-primary btn-sm" (click)="showAddFilament = true">
                         <app-icon name="plus" [size]="15"></app-icon> Add filament
                     </button>
@@ -254,7 +206,7 @@
                 <div class="filament-card" *ngFor="let filament of filaments" [class.low-stock]="filament.is_low_stock">
                     <div class="card-head">
                         <div class="card-title">
-                            <span class="material-tag">{{ filament.material }}</span>
+                            <span class="material-tag">{{ filament.material }}<ng-container *ngIf="filament.brand"> · {{ filament.brand }}</ng-container></span>
                             <h3>{{ filament.color }}</h3>
                         </div>
                         <div class="card-actions">
@@ -277,10 +229,16 @@
                     </div>
 
                     <dl class="meta">
+                        <div *ngIf="filament.location"><dt>Stored</dt><dd>{{ filament.location }}</dd></div>
                         <div><dt>Used</dt><dd>{{ filament.used_amount }}{{ filament.unit }}</dd></div>
                         <div><dt>Alert at</dt><dd>{{ filament.low_stock_threshold }}{{ filament.unit }}</dd></div>
                         <div *ngIf="filament.cost_per_gram"><dt>Cost / g</dt><dd>${{ filament.cost_per_gram }}</dd></div>
                     </dl>
+
+                    <div class="card-links">
+                        <a class="spool-code" [routerLink]="['/spool', filament.id]" title="Open this spool's page">{{ filament.code }}</a>
+                        <a class="link-btn" routerLink="/labels" [queryParams]="{ ids: filament.id }">Print label</a>
+                    </div>
                 </div>
             </div>
             <div *ngIf="filaments.length === 0" class="empty-state">
@@ -567,6 +525,16 @@
             </div>
 
             <div class="form-group">
+                <label>Brand</label>
+                <input type="text" [(ngModel)]="filamentForm.brand" name="brand" placeholder="e.g., Bambu, Polymaker">
+            </div>
+
+            <div class="form-group">
+                <label>Stored at</label>
+                <input type="text" [(ngModel)]="filamentForm.location" name="location" placeholder="e.g., Shelf A, Dry box 2">
+            </div>
+
+            <div class="form-group">
                 <label>Initial Amount (g)</label>
                 <input type="number" [(ngModel)]="filamentForm.initial_amount" name="initial_amount" placeholder="1000">
             </div>
@@ -574,6 +542,12 @@
             <div class="form-group">
                 <label>Current Amount (g)</label>
                 <input type="number" [(ngModel)]="filamentForm.current_amount" name="current_amount" placeholder="1000">
+            </div>
+
+            <div class="form-group">
+                <label>Empty Spool Weight (g)</label>
+                <input type="number" [(ngModel)]="filamentForm.spool_weight" name="spool_weight" placeholder="e.g. 250">
+                <small>Weigh an empty spool of this brand once. Then you can enter a scale reading on the spool's page and PrintOps works out what's left.</small>
             </div>
 
             <div class="form-group">

@@ -1,0 +1,84 @@
+<div class="board" cdkDropListGroup>
+    <section class="column" *ngFor="let column of columns" [attr.data-status]="column.status"
+             [attr.aria-label]="column.label + ' orders'">
+        <header class="column-head">
+            <span class="column-dot"></span>
+            <h3>{{ column.label }}</h3>
+            <span class="column-count">{{ lanes[column.status].length }}</span>
+            <span class="column-time" *ngIf="column.status !== 'SHIPPED' && laneMinutes(column.status) > 0"
+                  title="Estimated print time">~{{ formatMinutes(laneMinutes(column.status)) }}</span>
+        </header>
+        <p class="column-hint">{{ column.hint }}</p>
+
+        <div class="card-list" cdkDropList [id]="listId(column.status)" [cdkDropListData]="lanes[column.status]"
+             [cdkDropListConnectedTo]="dropListIds" [cdkDropListSortingDisabled]="column.status === 'SHIPPED'"
+             (cdkDropListDropped)="drop($event, column.status)">
+            <article class="card" *ngFor="let order of visible(column.status); trackBy: trackById"
+                     cdkDrag [cdkDragData]="order" [cdkDragStartDelay]="{ touch: 200, mouse: 0 }"
+                     (cdkDragStarted)="dragStarted()" (cdkDragEnded)="dragEnded()"
+                     tabindex="0" role="button" [attr.aria-label]="'Order ' + order.etsy_order_id + ' from ' + (order.buyer_name || 'Etsy buyer') + '. Open details'"
+                     (click)="open(order)" (keydown.enter)="open(order)" (keydown.space)="$event.preventDefault(); open(order)"
+                     [class.is-selected]="selectedId === order.id" [class.is-saving]="saving.has(order.id)">
+                <div class="card-top">
+                    <span class="order-no">#{{ order.etsy_order_id }}</span>
+                    <span class="priority" *ngIf="priorityLabel(order) as label"
+                          [class.urgent]="order.priority === 1">{{ label }}</span>
+                    <span class="age" [title]="(column.status === 'SHIPPED' && order.shipped_at ? 'Shipped ' : 'Ordered ') + ((column.status === 'SHIPPED' && order.shipped_at ? order.shipped_at : order.created_at) | date:'medium')">
+                        {{ age(order, column.status) }}
+                    </span>
+                </div>
+                <div class="buyer">{{ order.buyer_name || 'Etsy buyer' }}</div>
+                <div class="items">{{ itemsSummary(order) }}</div>
+                <div class="card-foot">
+                    <span class="flag ok" *ngIf="order.filament_assigned" title="Filament assigned">
+                        <app-icon name="check" [size]="12"></app-icon> Filament
+                    </span>
+                    <span class="flag bad" *ngIf="order.print_failures_count > 0">
+                        {{ order.print_failures_count }}× failed
+                    </span>
+                    <span class="flag" *ngIf="order.estimated_print_time && column.status !== 'SHIPPED'">
+                        {{ formatMinutes(order.estimated_print_time) }}
+                    </span>
+                    <span class="total">{{ order.total_amount | currency: (order.currency || 'USD') }}</span>
+                </div>
+                <div class="card-placeholder" *cdkDragPlaceholder></div>
+            </article>
+
+            <p class="empty" *ngIf="lanes[column.status].length === 0">Drop orders here</p>
+        </div>
+
+        <button class="btn btn-ghost btn-sm more" *ngIf="column.status === 'SHIPPED' && lanes.SHIPPED.length > shippedShown"
+                (click)="showMoreShipped()">
+            Show {{ lanes.SHIPPED.length - shippedShown > 20 ? 20 : lanes.SHIPPED.length - shippedShown }} more
+        </button>
+    </section>
+</div>
+
+<ng-container *ngIf="selected as order">
+    <div class="panel-scrim" (click)="close()"></div>
+    <aside class="panel" role="dialog" aria-modal="true" [attr.aria-label]="'Order ' + order.etsy_order_id">
+        <header class="panel-head">
+            <div class="panel-title">
+                <span class="order-no">#{{ order.etsy_order_id }}</span>
+                <h3>{{ order.buyer_name || 'Etsy buyer' }}</h3>
+                <span class="panel-sub">
+                    {{ order.created_at | date:'mediumDate' }} · {{ order.total_amount | currency: (order.currency || 'USD') }}
+                    <ng-container *ngIf="order.status"> · Etsy: {{ order.status | titlecase }}</ng-container>
+                </span>
+            </div>
+            <button class="icon-btn" (click)="close()" aria-label="Close order details">
+                <app-icon name="close"></app-icon>
+            </button>
+        </header>
+
+        <label class="stage-picker">
+            Stage
+            <select (change)="moveTo(order, $any($event.target).value)" [disabled]="saving.has(order.id)">
+                <option *ngFor="let column of columns" [value]="column.status"
+                        [selected]="column.status === order.production_status">{{ column.label }}</option>
+            </select>
+        </label>
+
+        <app-order-details [order]="order" layout="stacked" (changed)="changed.emit()"></app-order-details>
+    </aside>
+</ng-container>

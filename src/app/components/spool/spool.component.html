@@ -1,0 +1,109 @@
+<div class="spool-page">
+    <header class="top">
+        <a routerLink="/dashboard" class="back"><app-icon name="arrow-left" [size]="16"></app-icon> PrintOps</a>
+        <form class="scan" (ngSubmit)="openScanned()">
+            <input type="text" name="scan" [(ngModel)]="scanDraft" placeholder="Scan or type a code"
+                   aria-label="Scan or type another spool code" autocomplete="off" enterkeyhint="go">
+        </form>
+    </header>
+
+    <p class="state" *ngIf="loading && !spool">Loading spool…</p>
+
+    <div class="state" *ngIf="notFound">
+        <h2>Spool not found</h2>
+        <p>This label doesn't match any spool in your PrintOps. It may have been deleted, or belong to another account.</p>
+        <a routerLink="/dashboard" class="btn btn-primary">Go to dashboard</a>
+    </div>
+
+    <div class="state" *ngIf="loadError">
+        <p>{{ loadError }}</p>
+        <button class="btn btn-primary" (click)="reload()">Try again</button>
+    </div>
+
+    <ng-container *ngIf="spool as s">
+        <section class="hero" [class.low]="s.is_low_stock">
+            <div class="hero-top">
+                <span class="code">{{ s.code }}</span>
+                <span class="badge badge-warning" *ngIf="s.is_low_stock && s.current_amount > 0">Low</span>
+                <span class="badge badge-neutral" *ngIf="s.current_amount <= 0">Empty</span>
+            </div>
+            <h1>{{ s.color }}</h1>
+            <p class="what">{{ s.material }}<ng-container *ngIf="s.brand"> · {{ s.brand }}</ng-container></p>
+
+            <div class="amount">
+                <span class="big">{{ s.current_amount | number:'1.0-1' }}<small>{{ s.unit }}</small></span>
+                <span class="of">left of {{ s.initial_amount | number:'1.0-1' }}{{ s.unit }}</span>
+            </div>
+            <div class="bar" role="img" [attr.aria-label]="remainingPct + '% remaining'">
+                <div class="fill" [style.width.%]="remainingPct"></div>
+            </div>
+            <p class="where" *ngIf="s.location"><strong>Stored:</strong> {{ s.location }}</p>
+        </section>
+
+        <p class="flash" *ngIf="flash" role="status"><app-icon name="check" [size]="16"></app-icon> {{ flash }}</p>
+
+        <section class="action">
+            <h2>Log a print</h2>
+            <form (ngSubmit)="logUse()" class="row">
+                <label class="grow">
+                    <span>Grams used</span>
+                    <input type="number" name="used" inputmode="decimal" min="0" step="any" [(ngModel)]="usedGrams" placeholder="e.g. 42">
+                </label>
+                <label class="grow-2">
+                    <span>Note (optional)</span>
+                    <input type="text" name="usedNote" [(ngModel)]="usedNote" placeholder="What you printed">
+                </label>
+                <button type="submit" class="btn btn-primary" [disabled]="busy || !(usedGrams && usedGrams > 0)">Log</button>
+            </form>
+        </section>
+
+        <section class="action">
+            <h2>Weigh it</h2>
+            <form (ngSubmit)="saveWeight()" class="row">
+                <label class="grow">
+                    <span>{{ s.spool_weight ? 'Scale reading (g)' : 'Filament left (g)' }}</span>
+                    <input type="number" name="scale" inputmode="decimal" min="0" step="any" [(ngModel)]="scaleReading"
+                           [placeholder]="s.spool_weight ? 'Spool on the scale' : 'Remaining grams'">
+                </label>
+                <button type="submit" class="btn btn-primary" [disabled]="busy || remainingFromScale === null">Save</button>
+            </form>
+            <p class="hint" *ngIf="s.spool_weight && remainingFromScale !== null">
+                {{ scaleReading }} g − {{ s.spool_weight }} g empty spool = <strong>{{ remainingFromScale }} g left</strong>
+            </p>
+            <p class="hint" *ngIf="!s.spool_weight">
+                Add the empty spool's weight when editing this spool in PrintOps, then you can type the scale reading here directly.
+            </p>
+        </section>
+
+        <section class="action">
+            <h2>Where it's stored</h2>
+            <form (ngSubmit)="saveLocation()" class="row">
+                <label class="grow">
+                    <span>Location</span>
+                    <input type="text" name="location" [(ngModel)]="locationDraft" placeholder="Shelf A, dry box 2, X1C AMS 3…">
+                </label>
+                <button type="submit" class="btn btn-secondary" [disabled]="busy || locationDraft.trim() === (s.location || '')">Save</button>
+            </form>
+        </section>
+
+        <div class="secondary-actions">
+            <button class="btn btn-secondary" (click)="markEmpty()" [disabled]="busy || s.current_amount <= 0">Mark empty</button>
+            <a class="btn btn-secondary" [routerLink]="['/labels']" [queryParams]="{ ids: s.id }">Print label</a>
+        </div>
+
+        <section class="history">
+            <h2>Recent changes</h2>
+            <p class="hint" *ngIf="s.usage.length === 0">Nothing logged yet.</p>
+            <ul *ngIf="s.usage.length">
+                <li *ngFor="let u of s.usage">
+                    <span class="delta" [class.up]="u.amount_used < 0">{{ describeUsage(u.amount_used) }}</span>
+                    <span class="desc">
+                        {{ u.description || 'Used' }}
+                        <small *ngIf="u.order_etsy_id">Order #{{ u.order_etsy_id }}</small>
+                    </span>
+                    <time [attr.datetime]="asUtc(u.created_at)">{{ asUtc(u.created_at) | date:'MMM d, h:mm a' }}</time>
+                </li>
+            </ul>
+        </section>
+    </ng-container>
+</div>

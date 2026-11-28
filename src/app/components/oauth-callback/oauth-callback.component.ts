@@ -83,8 +83,9 @@ export class OAuthCallbackComponent implements OnInit {
             this.message = 'Login successful! Redirecting...';
             // Clean up sessionStorage
             sessionStorage.removeItem('oauth_code_verifier');
+            const returnUrl = this.authService.takeReturnUrl();
             setTimeout(() => {
-              this.router.navigate(['/dashboard']);
+              this.router.navigateByUrl(returnUrl);
             }, 1000);
           },
           () => {

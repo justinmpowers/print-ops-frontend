@@ -17,5 +17,14 @@ export const routes: Routes = [
   { path: 'printer/:printerId/materials', component: MaterialTrackerComponent, canActivate: [AuthGuard] },
   { path: 'printer/:printerId/queue', component: PrintQueueComponent, canActivate: [AuthGuard] },
   { path: 'printer/:printerId/notifications', component: NotificationSettingsComponent, canActivate: [AuthGuard] },
+  // Opened by scanning a spool's QR label (the label holds this address).
+  {
+    path: 'spool/:id', canActivate: [AuthGuard],
+    loadComponent: () => import('./components/spool/spool.component').then(m => m.SpoolComponent),
+  },
+  {
+    path: 'labels', canActivate: [AuthGuard],
+    loadComponent: () => import('./components/spool-labels/spool-labels.component').then(m => m.SpoolLabelsComponent),
+  },
   { path: '**', redirectTo: '/dashboard' }
 ];
