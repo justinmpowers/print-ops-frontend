@@ -52,5 +52,7 @@ LABEL version="${VERSION}" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.title="J3D Frontend"
 
-# Start nginx (runs as nginx user by default with our config)
+# Run as the unprivileged nginx user (it owns everything nginx writes, and port 4200 needs no root)
+USER nginx
+
 CMD ["nginx", "-g", "daemon off;"]
