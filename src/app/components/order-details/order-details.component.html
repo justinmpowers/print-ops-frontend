@@ -1,0 +1,71 @@
+<div class="detail-panel">
+    <h4>Items</h4>
+    <ul class="item-list">
+        <li *ngFor="let item of order.items">
+            <span>{{ item.title }}</span><span class="qty">× {{ item.quantity }}</span>
+        </li>
+    </ul>
+    <p class="detail-line" *ngIf="order.total_filament_used > 0">
+        Filament used <strong>{{ order.total_filament_used }}g</strong>
+    </p>
+    <button class="btn btn-secondary btn-sm" (click)="editOrderFilament()">Manual filament assignment</button>
+</div>
+
+<div class="detail-panel">
+    <h4>Internal notes</h4>
+    <div class="note-list" *ngIf="notes.length">
+        <div class="note-item" *ngFor="let note of notes">
+            <span class="note-date">{{ formatDate(note.created_at) }}</span>
+            <p>{{ note.content }}</p>
+        </div>
+    </div>
+    <textarea rows="2" placeholder="Add a note" [(ngModel)]="noteDraft" aria-label="New note"></textarea>
+    <button class="btn btn-primary btn-sm" (click)="saveNote()">Save note</button>
+</div>
+
+<div class="detail-panel">
+    <h4>Customer log</h4>
+    <div class="comm-list" *ngIf="comms.length">
+        <div class="comm-item" *ngFor="let log of comms">
+            <span class="comm-date">{{ formatDate(log.created_at) }}</span>
+            <span class="comm-chip">{{ log.direction }}</span>
+            <span class="comm-chip">{{ log.channel }}</span>
+            <p>{{ log.message }}</p>
+        </div>
+    </div>
+    <textarea rows="2" placeholder="Log a message" [(ngModel)]="commDraft.message" aria-label="Message to log"></textarea>
+    <div class="comm-meta">
+        <select [(ngModel)]="commDraft.direction" aria-label="Direction">
+            <option value="outbound">Outbound</option>
+            <option value="inbound">Inbound</option>
+        </select>
+        <select [(ngModel)]="commDraft.channel" aria-label="Channel">
+            <option value="message">Message</option>
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+            <option value="other">Other</option>
+        </select>
+        <button class="btn btn-primary btn-sm" (click)="saveCommunication()">Log</button>
+    </div>
+</div>
+
+<div class="detail-panel">
+    <h4>Shipping</h4>
+    <div *ngIf="order.tracking_number; else noTracking">
+        <p class="detail-line">Tracking <strong class="mono">{{ order.tracking_number }}</strong></p>
+        <p class="detail-line" *ngIf="order.shipping_provider">Provider <strong>{{ order.shipping_provider }}</strong></p>
+        <p class="detail-line" *ngIf="order.shipping_label_status">Label <strong>{{ order.shipping_label_status }}</strong></p>
+    </div>
+    <ng-template #noTracking>
+        <p class="muted">Tracking is managed in Etsy.</p>
+    </ng-template>
+
+    <h4 class="spaced">Finished photo</h4>
+    <div *ngIf="order.photo_url" class="photo-preview">
+        <img [src]="order.photo_url" alt="Finished order photo">
+    </div>
+    <div class="photo-upload">
+        <input type="file" accept="image/*" (change)="onPhotoSelected($event)" aria-label="Choose photo">
+        <button class="btn btn-secondary btn-sm" (click)="uploadPhoto()">Upload</button>
+    </div>
+</div>

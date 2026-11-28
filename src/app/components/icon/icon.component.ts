@@ -3,7 +3,8 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 export type IconName =
   | 'orders' | 'production' | 'printers' | 'filaments' | 'products' | 'analytics' | 'integrations'
   | 'bell' | 'logout' | 'refresh' | 'chevron-down' | 'edit' | 'trash' | 'plus' | 'alert' | 'send'
-  | 'filter' | 'check' | 'play' | 'menu' | 'close' | 'arrow-left' | 'arrow-up' | 'arrow-down' | 'external';
+  | 'filter' | 'check' | 'play' | 'menu' | 'close' | 'arrow-left' | 'arrow-up' | 'arrow-down' | 'external'
+  | 'qr';
 
 /** Small inline stroke icons, so the UI doesn't depend on emoji or an icon font. */
 @Component({
@@ -66,6 +67,11 @@ export type IconName =
         @case ('arrow-left') { <line x1="19" y1="12" x2="5" y2="12" /><polyline points="11 6 5 12 11 18" /> }
         @case ('arrow-up') { <line x1="12" y1="19" x2="12" y2="5" /><polyline points="6 11 12 5 18 11" /> }
         @case ('arrow-down') { <line x1="12" y1="5" x2="12" y2="19" /><polyline points="6 13 12 19 18 13" /> }
+        @case ('qr') {
+          <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" /><line x1="14" y1="14" x2="14" y2="14.01" />
+          <line x1="18" y1="14" x2="21" y2="14" /><line x1="14" y1="18" x2="14" y2="21" /><line x1="18" y1="18" x2="21" y2="21" />
+        }
         @case ('external') {
           <path d="M14 5h5v5" /><line x1="19" y1="5" x2="11" y2="13" /><path d="M18 14v5H5V6h5" />
         }

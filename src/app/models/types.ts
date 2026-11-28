@@ -40,6 +40,7 @@ export interface Order {
   print_completed_at: string | null;
   print_failures_count: number;
   print_notes: string | null;
+  board_position: number | null;
   items: OrderItem[];
   synced_at: string;
 }
@@ -73,9 +74,15 @@ export interface OrderItem {
 
 export interface Filament {
   id: number;
+  /** Label code printed on the spool's QR sticker, e.g. F-0042. */
+  code: string;
   user_id: number;
   color: string;
   material: string;
+  brand: string | null;
+  location: string | null;
+  /** Grams of the empty spool, so a scale reading gives what's left. */
+  spool_weight: number | null;
   initial_amount: number;
   current_amount: number;
   unit: string;
@@ -94,6 +101,12 @@ export interface FilamentUsage {
   amount_used: number;
   description: string | null;
   created_at: string;
+  order_etsy_id?: string | null;
+}
+
+/** A spool with its recent usage, as the spool page shows it. */
+export interface SpoolDetail extends Filament {
+  usage: FilamentUsage[];
 }
 
 export interface ProductProfile {

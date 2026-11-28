@@ -1,29 +1,34 @@
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from 'services/auth.service';
 import { OrderService } from 'services/order.service';
 import { FilamentService } from 'services/filament.service';
 import { PrinterService, Printer } from 'services/printer.service';
 import { AlertsService, AlertSettings } from 'services/alerts.service';
 import { ManyfoldService, ManyfoldSettings } from 'services/manyfold.service';
-import { Order, Filament, ProductProfile, OrderNote, CommunicationLog } from 'models/types';
+import { Order, Filament, ProductProfile } from 'models/types';
+import { spoolIdFromScan } from 'models/spool-code';
 import { AnalyticsComponent } from 'components/analytics/analytics.component';
 import { ProductionComponent } from 'components/production/production.component';
 import { PrinterManagementComponent } from 'components/printer-management/printer-management.component';
 import { ManyfoldPickerComponent } from 'components/manyfold-picker/manyfold-picker.component';
 import { IconComponent, IconName } from 'components/icon/icon.component';
 import { DevicesPanelComponent } from 'components/devices-panel/devices-panel.component';
+import { OrderBoardComponent } from 'components/order-board/order-board.component';
+import { OrderDetailsComponent } from 'components/order-details/order-details.component';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'environments/environment';
 
 type DashboardTab = 'orders' | 'filaments' | 'analytics' | 'products' | 'production' | 'printers' | 'integrations';
+type OrdersView = 'board' | 'list';
+const ORDERS_VIEW_KEY = 'orders_view';
 
 @Component({
     selector: 'app-dashboard',
     standalone: true,
-    imports: [CommonModule, FormsModule, AnalyticsComponent, ProductionComponent, PrinterManagementComponent, ManyfoldPickerComponent, IconComponent, DevicesPanelComponent],
+    imports: [CommonModule, FormsModule, RouterLink, AnalyticsComponent, ProductionComponent, PrinterManagementComponent, ManyfoldPickerComponent, IconComponent, DevicesPanelComponent, OrderBoardComponent, OrderDetailsComponent],
     templateUrl: './dashboard.component.html',
     changeDetection: ChangeDetectionStrategy.Eager,
     styleUrls: ['./dashboard.component.scss'],
@@ -40,6 +45,7 @@ export class DashboardComponent implements OnInit {
         { id: 'integrations', label: 'Integrations', icon: 'integrations' },
     ];
     sidebarOpen = false;   // only matters on narrow screens, where the sidebar is a drawer
+    ordersView: OrdersView = localStorage.getItem(ORDERS_VIEW_KEY) === 'list' ? 'list' : 'board';
     expandedOrders: Set<number> = new Set();
     orders: Order[] = [];
     selectedOrders: Set<number> = new Set();
@@ -58,12 +64,7 @@ export class DashboardComponent implements OnInit {
         start_date: '',
         end_date: '',
     };
-    noteDrafts: Record<number, string> = {};
-    notesCache: Record<number, OrderNote[]> = {};
-    commDrafts: Record<number, { message: string; direction: string; channel: string }> = {};
-    commCache: Record<number, CommunicationLog[]> = {};
     labelDrafts: Record<number, { provider: string; tracking: string }> = {};
-    photoFiles: Record<number, File | null> = {};
     filaments: Filament[] = [];
     lowStockFilaments: Filament[] = [];
     printerIssues: string[] = [];
@@ -88,11 +89,15 @@ export class DashboardComponent implements OnInit {
     filamentForm = {
         material: '',
         color: '',
+        brand: '',
+        location: '',
+        spool_weight: null as number | null,
         initial_amount: 0,
         current_amount: 0,
         cost_per_gram: 0,
         low_stock_threshold: 100
     };
+    spoolScanDraft = '';
     
     productForm = {
         product_name: '',
@@ -201,13 +206,18 @@ export class DashboardComponent implements OnInit {
                 next: () => {
                     this.syncingOrders = false;
                     this.autoSyncComplete = true;
+                    this.etsyNeedsReconnect = false;
                     this.loadOrders();
                     console.log('Orders auto-synced successfully');
                 },
                 error: (error) => {
                     this.syncingOrders = false;
                     console.error('Auto-sync failed:', error);
-                    // Don't show alert for auto-sync failures, just log them
+                    // No alert for auto-sync failures; an expired Etsy connection shows a banner instead.
+                    if (error.error?.needs_reconnect) {
+                        this.etsyNeedsReconnect = true;
+                    }
+                    this.cdr.detectChanges();
                 }
             });
         }
@@ -225,8 +235,6 @@ export class DashboardComponent implements OnInit {
                     }
                 });
                 this.orders.forEach(o => {
-                    if (!this.noteDrafts[o.id]) this.noteDrafts[o.id] = '';
-                    if (!this.commDrafts[o.id]) this.commDrafts[o.id] = { message: '', direction: 'outbound', channel: 'message' };
                     if (!this.labelDrafts[o.id]) this.labelDrafts[o.id] = { provider: o.shipping_provider || 'manual', tracking: o.tracking_number || '' };
                 });
                 this.cdr.detectChanges();
@@ -434,13 +442,19 @@ export class DashboardComponent implements OnInit {
         this.orderService.syncOrders().subscribe({
             next: () => {
                 this.syncingOrders = false;
+                this.etsyNeedsReconnect = false;
                 this.loadOrders();
                 alert('Orders synced successfully!');
             },
             error: (error) => {
                 this.syncingOrders = false;
                 console.error('Error syncing orders:', error);
-                alert('Failed to sync orders');
+                if (error.error?.needs_reconnect) {
+                    this.etsyNeedsReconnect = true;
+                    this.cdr.detectChanges();
+                    return;
+                }
+                alert(error.error?.error || 'Failed to sync orders');
             }
         });
     }
@@ -578,90 +592,6 @@ export class DashboardComponent implements OnInit {
         });
     }
 
-    saveNote(order: Order): void {
-        const content = this.noteDrafts[order.id];
-        if (!content || !content.trim()) {
-            alert('Note cannot be empty');
-            return;
-        }
-        this.orderService.addNote(order.id, content).subscribe({
-            next: (note) => {
-                this.noteDrafts[order.id] = '';
-                if (!this.notesCache[order.id]) this.notesCache[order.id] = [];
-                this.notesCache[order.id].unshift(note);
-                this.cdr.detectChanges();
-            },
-            error: (err) => {
-                console.error('Failed to add note', err);
-                alert('Failed to add note');
-            }
-        });
-    }
-
-    loadNotes(order: Order): void {
-        if (this.notesCache[order.id]) return; // already loaded
-        this.orderService.listNotes(order.id).subscribe({
-            next: (res) => {
-                this.notesCache[order.id] = res.notes;
-                this.cdr.detectChanges();
-            },
-            error: (err) => console.error('Failed to load notes', err)
-        });
-    }
-
-    saveCommunication(order: Order): void {
-        const draft = this.commDrafts[order.id] || { message: '', direction: 'outbound', channel: 'message' };
-        if (!draft.message || !draft.message.trim()) {
-            alert('Message cannot be empty');
-            return;
-        }
-        this.orderService.addCommunication(order.id, draft).subscribe({
-            next: (log) => {
-                if (!this.commCache[order.id]) this.commCache[order.id] = [];
-                this.commCache[order.id].unshift(log);
-                this.commDrafts[order.id] = { message: '', direction: 'outbound', channel: 'message' };
-                this.loadOrders();
-                this.cdr.detectChanges();
-            },
-            error: (err) => {
-                console.error('Failed to add communication', err);
-                alert('Failed to add communication');
-            }
-        });
-    }
-
-    loadCommunications(order: Order): void {
-        if (this.commCache[order.id]) return;
-        this.orderService.listCommunications(order.id).subscribe({
-            next: (res) => { this.commCache[order.id] = res.logs; this.cdr.detectChanges(); },
-            error: (err) => console.error('Failed to load communications', err)
-        });
-    }
-
-    onPhotoSelected(event: any, order: Order): void {
-        const file = event.target.files?.[0];
-        this.photoFiles[order.id] = file || null;
-    }
-
-    uploadPhoto(order: Order): void {
-        const file = this.photoFiles[order.id];
-        if (!file) {
-            alert('Select a photo first');
-            return;
-        }
-        this.orderService.uploadPhoto(order.id, file).subscribe({
-            next: (res) => {
-                order.photo_url = res.photo_url;
-                this.photoFiles[order.id] = null;
-                this.cdr.detectChanges();
-            },
-            error: (err) => {
-                console.error('Photo upload failed', err);
-                alert('Photo upload failed');
-            }
-        });
-    }
-
     saveShippingLabel(order: Order): void {
         const draft = this.labelDrafts[order.id] || { provider: 'manual', tracking: '' };
         this.orderService.updateShippingLabel(order.id, {
@@ -685,12 +615,26 @@ export class DashboardComponent implements OnInit {
         this.filamentForm = {
             material: filament.material,
             color: filament.color,
+            brand: filament.brand || '',
+            location: filament.location || '',
+            spool_weight: filament.spool_weight,
             initial_amount: filament.initial_amount,
             current_amount: filament.current_amount,
             cost_per_gram: filament.cost_per_gram || 0,
             low_stock_threshold: filament.low_stock_threshold || 100
         };
         this.showAddFilament = true;
+    }
+
+    /** Open a spool from the scan box: a USB scanner types the label's address, or type a code like F-0042. */
+    openScannedSpool(): void {
+        const id = spoolIdFromScan(this.spoolScanDraft);
+        if (id === null) {
+            alert(`"${this.spoolScanDraft}" isn't a spool code. Codes look like F-0042.`);
+            return;
+        }
+        this.spoolScanDraft = '';
+        this.router.navigate(['/spool', id]);
     }
 
     deleteFilament(filamentId: number): void {
@@ -731,10 +675,6 @@ export class DashboardComponent implements OnInit {
                 }
             );
         }
-    }
-
-    editOrderFilament(order: Order): void {
-        alert(`Managing filament for order ${order.etsy_order_id} - This feature will be implemented soon`);
     }
 
     autoAssignFilament(order: Order): void {
@@ -871,6 +811,9 @@ export class DashboardComponent implements OnInit {
         this.filamentForm = {
             material: '',
             color: '',
+            brand: '',
+            location: '',
+            spool_weight: null,
             initial_amount: 0,
             current_amount: 0,
             cost_per_gram: 0,
@@ -893,8 +836,16 @@ export class DashboardComponent implements OnInit {
             return;
         }
         this.expandedOrders.add(order.id);
-        this.loadNotes(order);
-        this.loadCommunications(order);
+    }
+
+    setOrdersView(view: OrdersView): void {
+        this.ordersView = view;
+        localStorage.setItem(ORDERS_VIEW_KEY, view);
+        if (view === 'board') this.selectedOrders.clear();
+    }
+
+    trackOrderById(_: number, order: Order): number {
+        return order.id;
     }
 
     itemsSummary(order: Order): string {

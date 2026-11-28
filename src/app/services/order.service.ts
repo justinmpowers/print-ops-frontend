@@ -62,6 +62,18 @@ export class OrderService {
     });
   }
 
+  /**
+   * Drop an order into a board column. `columnOrder` is the target column's order ids from top
+   * to bottom, the moved order included; the server saves that order and the new status.
+   */
+  moveOnBoard(orderId: number, productionStatus: string, columnOrder: number[]): Observable<Order> {
+    return this.http.post<Order>(`${this.apiUrl}/orders/board/move`, {
+      order_id: orderId,
+      production_status: productionStatus,
+      column_order: columnOrder,
+    });
+  }
+
   bulkActions(orderIds: number[], action: string, extra?: any): Observable<{ orders: Order[], total: number }> {
     return this.http.post<{ orders: Order[], total: number }>(
       `${this.apiUrl}/orders/bulk-actions`,
