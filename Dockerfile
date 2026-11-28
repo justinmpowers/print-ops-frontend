@@ -23,8 +23,9 @@ FROM nginx:alpine
 # Redeclare VERSION ARG for use in this stage
 ARG VERSION
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Apply Alpine security updates released since the base image was last rebuilt (the image scan in
+# security-scan.yml flags those), and install curl for health checks
+RUN apk upgrade --no-cache && apk add --no-cache curl
 
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
