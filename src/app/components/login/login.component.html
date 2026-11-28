@@ -11,6 +11,14 @@
             {{ loading ? 'Redirecting to Etsy...' : 'Login with Etsy' }}
         </button>
 
+        <label class="keep-signed-in">
+            <input type="checkbox" [checked]="keepSignedIn" (change)="keepSignedIn = $any($event.target).checked">
+            <span>
+                Keep me signed in
+                <small>Stays signed in on this device until you log out or don't use it for 90 days. Leave unticked on a shared computer.</small>
+            </span>
+        </label>
+
         <p class="info-text">
             This app requires permission to access your Etsy orders and shop information.
         </p>

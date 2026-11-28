@@ -140,3 +140,31 @@
   margin-bottom: 20px;
   text-align: left;
 }
+
+.keep-signed-in {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  text-align: left;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+
+  input {
+    width: 17px;
+    height: 17px;
+    margin: 2px 0 0;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+}

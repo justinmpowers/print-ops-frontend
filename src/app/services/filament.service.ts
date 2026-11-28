@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Filament, FilamentUsage } from 'models/types';
+import { Filament, FilamentUsage, SpoolDetail } from 'models/types';
 import { AuthService } from 'services/auth.service';
 import { environment } from 'environments/environment';
 
@@ -23,6 +23,19 @@ export class FilamentService {
   getFilaments(): Observable<{ filaments: Filament[]; total: number }> {
     return this.http.get<{ filaments: Filament[]; total: number }>(`${this.apiUrl}/filaments`, {
       headers: this.authService.getAuthHeaders()
+    });
+  }
+
+  /** One spool with its recent usage history (the page its QR label opens). */
+  getFilament(filamentId: number): Observable<SpoolDetail> {
+    return this.http.get<SpoolDetail>(`${this.apiUrl}/filaments/${filamentId}`);
+  }
+
+  /** Set how much is left on a spool (after weighing it, or 0 to mark it empty); the change is logged. */
+  adjustRemaining(filamentId: number, currentAmount: number, note?: string): Observable<Filament> {
+    return this.http.post<Filament>(`${this.apiUrl}/filaments/${filamentId}/adjust`, {
+      current_amount: currentAmount,
+      note,
     });
   }
 

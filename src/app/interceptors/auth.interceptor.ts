@@ -1,16 +1,18 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, throwError } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { environment } from 'environments/environment';
 
-// Shared across requests so concurrent 401s trigger a single refresh call, not one per request.
-let refreshInProgress$: Observable<string | null> | null = null;
-
 const AUTH_EXEMPT_PATHS = ['/auth/login', '/auth/callback', '/auth/refresh'];
 
+/**
+ * Attaches the access token to API requests and, on a 401, renews the session once and retries.
+ * Only a refresh the server actually rejects sends you to the login page; if the server can't be
+ * reached the request just fails and the session is kept for the next try.
+ */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
@@ -29,24 +31,18 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
-      if (!refreshInProgress$) {
-        refreshInProgress$ = authService.refreshAccessToken();
-      }
+      // If the session was renewed while this request was in flight (by another request or tab),
+      // retry with that token instead of spending the refresh token again.
+      const current = authService.getToken();
+      const renewed$ = current && current !== token ? of(current) : authService.refreshAccessToken();
 
-      return refreshInProgress$.pipe(
+      return renewed$.pipe(
         switchMap(newToken => {
-          refreshInProgress$ = null;
           if (!newToken) {
             router.navigate(['/login']);
             return throwError(() => error);
           }
-          const retriedReq = req.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } });
-          return next(retriedReq);
-        }),
-        catchError(refreshError => {
-          refreshInProgress$ = null;
-          router.navigate(['/login']);
-          return throwError(() => refreshError);
+          return next(req.clone({ setHeaders: { Authorization: `Bearer ${newToken}` } }));
         })
       );
     })
