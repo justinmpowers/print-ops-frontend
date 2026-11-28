@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -9,6 +9,7 @@ import { PrinterService, Printer, PrinterStatus } from '../../services/printer.s
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './printer-management.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./printer-management.component.scss']
 })
 export class PrinterManagementComponent implements OnInit, OnDestroy {

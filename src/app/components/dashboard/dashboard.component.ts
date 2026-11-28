@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,6 +25,7 @@ type DashboardTab = 'orders' | 'filaments' | 'analytics' | 'products' | 'product
     standalone: true,
     imports: [CommonModule, FormsModule, AnalyticsComponent, ProductionComponent, PrinterManagementComponent, ManyfoldPickerComponent, IconComponent, DevicesPanelComponent],
     templateUrl: './dashboard.component.html',
+    changeDetection: ChangeDetectionStrategy.Eager,
     styleUrls: ['./dashboard.component.scss'],
 })
 export class DashboardComponent implements OnInit {

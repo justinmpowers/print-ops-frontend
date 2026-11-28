@@ -1,7 +1,6 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
@@ -11,7 +10,6 @@
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
     "declaration": false,
-    "downlevelIteration": true,
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
     "importHelpers": true,
@@ -24,19 +22,19 @@
     ],
     "paths": {
       "environments/*": [
-        "src/environments/*"
+        "./src/environments/*"
       ],
       "services/*": [
-        "src/app/services/*"
+        "./src/app/services/*"
       ],
       "models/*": [
-        "src/app/models/*"
+        "./src/app/models/*"
       ],
       "components/*": [
-        "src/app/components/*"
+        "./src/app/components/*"
       ],
       "guards/*": [
-        "src/app/guards/*"
+        "./src/app/guards/*"
       ]
     }
   },

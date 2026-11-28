@@ -1,6 +1,6 @@
 # Multi-stage build for Angular frontend
 ARG VERSION
-FROM node:22-alpine as builder
+FROM node:24-alpine as builder
 
 # Set working directory
 WORKDIR /app

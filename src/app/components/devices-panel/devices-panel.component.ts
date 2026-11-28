@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CreatedDeviceKey, DeviceKey, DeviceService } from 'services/device.service';
@@ -10,6 +10,7 @@ import { IconComponent } from 'components/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './devices-panel.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./devices-panel.component.scss'],
 })
 export class DevicesPanelComponent implements OnInit {

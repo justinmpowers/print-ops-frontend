@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from './services/auth.service';
 import { IdleService } from './services/idle.service';
@@ -12,6 +12,7 @@ import { IdleService } from './services/idle.service';
   standalone: true,
   imports: [RouterOutlet],
   template: `<router-outlet></router-outlet>`,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: []
 })
 export class AppComponent implements OnInit {

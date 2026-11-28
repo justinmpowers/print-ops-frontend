@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -9,6 +9,7 @@ import { PrinterService, BambuMaterial, Printer } from '../../services/printer.s
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './material-tracker.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./material-tracker.component.scss']
 })
 export class MaterialTrackerComponent implements OnInit {
