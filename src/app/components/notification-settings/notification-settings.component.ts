@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -9,6 +9,7 @@ import { PrinterService, PrintNotification, Printer } from '../../services/print
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './notification-settings.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./notification-settings.component.scss']
 })
 export class NotificationSettingsComponent implements OnInit {

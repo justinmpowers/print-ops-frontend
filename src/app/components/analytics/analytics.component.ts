@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AnalyticsService, AnalyticsSummary, RevenueTrends, ProductPerformanceResponse } from '../../services/analytics.service';
@@ -8,6 +8,7 @@ import { AnalyticsService, AnalyticsSummary, RevenueTrends, ProductPerformanceRe
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './analytics.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./analytics.component.scss']
 })
 export class AnalyticsComponent implements OnInit {

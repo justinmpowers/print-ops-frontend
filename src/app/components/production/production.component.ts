@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductionService } from '../../services/production.service';
@@ -11,6 +11,7 @@ import { IconComponent } from 'components/icon/icon.component';
   standalone: true,
   imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './production.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./production.component.scss']
 })
 export class ProductionComponent implements OnInit {

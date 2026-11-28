@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ManyfoldService, ManyfoldMember } from '../../services/manyfold.service';
@@ -13,6 +13,7 @@ import { ManyfoldService, ManyfoldMember } from '../../services/manyfold.service
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './manyfold-picker.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./manyfold-picker.component.scss']
 })
 export class ManyfoldPickerComponent implements OnInit {

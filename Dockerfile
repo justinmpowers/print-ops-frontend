@@ -1,6 +1,6 @@
 # Multi-stage build for Angular frontend
 ARG VERSION
-FROM node:22-alpine as builder
+FROM node:24-alpine as builder
 
 # Set working directory
 WORKDIR /app
@@ -23,8 +23,9 @@ FROM nginx:alpine
 # Redeclare VERSION ARG for use in this stage
 ARG VERSION
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Apply Alpine security updates released since the base image was last rebuilt (the image scan in
+# security-scan.yml flags those), and install curl for health checks
+RUN apk upgrade --no-cache && apk add --no-cache curl
 
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -52,5 +53,7 @@ LABEL version="${VERSION}" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.title="J3D Frontend"
 
-# Start nginx (runs as nginx user by default with our config)
+# Run as the unprivileged nginx user (it owns everything nginx writes, and port 4200 needs no root)
+USER nginx
+
 CMD ["nginx", "-g", "daemon off;"]
